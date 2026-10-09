@@ -5,7 +5,7 @@
 
 #include <stddef.h>
 
-const unsigned char hui_default_font_data[] = {
+const unsigned char rvn_default_font_data[] = {
 	0,1,0,0,0,11,0,128,0,3,0,48,79,83,47,50,117,211,226,69,
 	0,0,81,80,0,0,0,96,99,109,97,112,225,94,229,117,0,0,81,176,
 	0,0,1,204,103,97,115,112,0,8,0,19,0,0,85,88,0,0,0,12,
@@ -1101,4 +1101,4 @@ const unsigned char hui_default_font_data[] = {
 	0,0,0,0,0,0,0,0,0,1,0,2,0,8,0,2,255,255,0,15,
 };
 
-const size_t hui_default_font_size = 21860;
+const size_t rvn_default_font_size = 21860;

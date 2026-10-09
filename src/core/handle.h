@@ -1,42 +1,42 @@
 /**
- * HUI - core/handle.h
- * Generational handle pools: HUI_id <-> object pointer.
+ * Raven - core/handle.h
+ * Generational handle pools: Rid <-> object pointer.
  *
  * Handle layout (32 bits):   [ type : 4 | generation : 8 | index : 20 ]
  *
  * The type tag makes a font handle invalid where a widget is expected, the
  * generation makes a deleted handle invalid even after its slot is reused.
- * Type 0 and type 15 are never used, so 0 and HUI_INVALID_ID never resolve.
+ * Type 0 and type 15 are never used, so 0 and R_INVALID_ID never resolve.
  */
 
-#ifndef HUI_HANDLE_H
-#define HUI_HANDLE_H
+#ifndef RVN_HANDLE_H
+#define RVN_HANDLE_H
 
 #include "base.h"
 
-typedef enum hui_handle_type_t {
-	HUI_HANDLE_WINDOW = 1,
-	HUI_HANDLE_WIDGET,
-	HUI_HANDLE_FONT,
-	HUI_HANDLE_TEXTURE,
-	HUI_HANDLE_TIMER,
-	HUI_HANDLE_TREE_ITEM,
+typedef enum rvn_handle_type_t {
+	RVN_HANDLE_WINDOW = 1,
+	RVN_HANDLE_WIDGET,
+	RVN_HANDLE_FONT,
+	RVN_HANDLE_TEXTURE,
+	RVN_HANDLE_TIMER,
+	RVN_HANDLE_TREE_ITEM,
 	/** Pseudo-handle naming a glyph atlas page inside draw lists (never in a pool). */
-	HUI_HANDLE_ATLAS_PAGE
-} hui_handle_type_t;
+	RVN_HANDLE_ATLAS_PAGE
+} rvn_handle_type_t;
 
-#define HUI_HANDLE_INDEX_BITS 20u
-#define HUI_HANDLE_INDEX_MASK 0xFFFFFu
-#define HUI_HANDLE_MAX_INDEX  HUI_HANDLE_INDEX_MASK
+#define RVN_HANDLE_INDEX_BITS 20u
+#define RVN_HANDLE_INDEX_MASK 0xFFFFFu
+#define RVN_HANDLE_MAX_INDEX  RVN_HANDLE_INDEX_MASK
 
-HUI_INLINE uint32_t hui_handle_index(HUI_id id) { return id & HUI_HANDLE_INDEX_MASK; }
-HUI_INLINE uint32_t hui_handle_generation(HUI_id id) { return (id >> HUI_HANDLE_INDEX_BITS) & 0xFFu; }
-HUI_INLINE uint32_t hui_handle_type(HUI_id id) { return id >> 28; }
-HUI_INLINE HUI_id hui_handle_make(uint32_t type, uint32_t generation, uint32_t index) {
-	return (type << 28) | ((generation & 0xFFu) << HUI_HANDLE_INDEX_BITS) | (index & HUI_HANDLE_INDEX_MASK);
+RVN_INLINE uint32_t rvn_handle_index(Rid id) { return id & RVN_HANDLE_INDEX_MASK; }
+RVN_INLINE uint32_t rvn_handle_generation(Rid id) { return (id >> RVN_HANDLE_INDEX_BITS) & 0xFFu; }
+RVN_INLINE uint32_t rvn_handle_type(Rid id) { return id >> 28; }
+RVN_INLINE Rid rvn_handle_make(uint32_t type, uint32_t generation, uint32_t index) {
+	return (type << 28) | ((generation & 0xFFu) << RVN_HANDLE_INDEX_BITS) | (index & RVN_HANDLE_INDEX_MASK);
 }
 
-typedef struct hui_pool_t {
+typedef struct rvn_pool_t {
 	void** items;
 	uint8_t* generations;
 	uint32_t* free_list;
@@ -47,16 +47,16 @@ typedef struct hui_pool_t {
 	uint32_t free_cap;
 	uint32_t live;
 	uint32_t type;
-} hui_pool_t;
+} rvn_pool_t;
 
-void   hui_pool_init(hui_pool_t* pool, hui_handle_type_t type);
-void   hui_pool_free(hui_pool_t* pool);
-/** Registers an object and returns its handle (HUI_INVALID_ID when the pool is full). */
-HUI_id hui_pool_add(hui_pool_t* pool, void* object);
+void   rvn_pool_init(rvn_pool_t* pool, rvn_handle_type_t type);
+void   rvn_pool_free(rvn_pool_t* pool);
+/** Registers an object and returns its handle (R_INVALID_ID when the pool is full). */
+Rid rvn_pool_add(rvn_pool_t* pool, void* object);
 /** Returns the object, or NULL when the handle is stale, deleted or of another type. */
-void*  hui_pool_get(const hui_pool_t* pool, HUI_id id);
-void   hui_pool_remove(hui_pool_t* pool, HUI_id id);
+void*  rvn_pool_get(const rvn_pool_t* pool, Rid id);
+void   rvn_pool_remove(rvn_pool_t* pool, Rid id);
 /** Iteration over live objects: returns the object at slot `index` or NULL. */
-void*  hui_pool_at(const hui_pool_t* pool, uint32_t index);
+void*  rvn_pool_at(const rvn_pool_t* pool, uint32_t index);
 
-#endif /* HUI_HANDLE_H */
+#endif /* RVN_HANDLE_H */

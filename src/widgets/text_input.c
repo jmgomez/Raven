@@ -1,203 +1,210 @@
 /**
- * HUI - widgets/text_input.c
+ * Raven - widgets/text_input.c
  * TextInput (Slate SEditableTextBox): single-line text field with caret,
  * selection, clipboard and placeholder.
  */
 
 #include "common.h"
 
-typedef struct hui_text_input_t {
-	hui_widget_t base;
-	hui_textedit_t edit;
+typedef struct rvn_text_input_t {
+	rvn_widget_t base;
+	rvn_textedit_t edit;
 	char* placeholder;
-	HUI_CTextChanged changed;
+	RTextChangedCallback changed;
 	void* changed_user;
-	HUI_CTextChanged committed;
+	RTextChangedCallback committed;
 	void* committed_user;
-} hui_text_input_t;
+} rvn_text_input_t;
 
-static void hui_text_input_init(hui_widget_t* widget) {
-	hui_textedit_init(&((hui_text_input_t*)widget)->edit);
-	widget->cursor = HUI_CURSOR_IBEAM;
+static void rvn_text_input_init(rvn_widget_t* widget) {
+	rvn_textedit_init(&((rvn_text_input_t*)widget)->edit);
+	widget->cursor = R_CURSOR_IBEAM;
 }
 
-static void hui_text_input_destroy(hui_widget_t* widget) {
-	hui_text_input_t* input = (hui_text_input_t*)widget;
-	hui_textedit_free(&input->edit);
-	hui_free(input->placeholder);
+static void rvn_text_input_destroy(rvn_widget_t* widget) {
+	rvn_text_input_t* input = (rvn_text_input_t*)widget;
+	rvn_textedit_free(&input->edit);
+	rvn_free(input->placeholder);
 }
 
-static hui_rect_t hui_text_input_area(const hui_widget_t* widget) {
-	float px = hui_widget_metric(widget, HUI_METRIC_PADDING_X) * 0.7f;
-	return hui_rect(px, 0.0f, hui_maxf(0.0f, widget->rect.w - px * 2.0f), widget->rect.h);
+static rvn_rect_t rvn_text_input_area(const rvn_widget_t* widget) {
+	float px = rvn_widget_metric(widget, R_METRIC_PADDING_X) * 0.7f;
+	return rvn_rect(px, 0.0f, rvn_maxf(0.0f, widget->rect.w - px * 2.0f), widget->rect.h);
 }
 
-static hui_vec2_t hui_text_input_measure(hui_widget_t* widget) {
-	return hui_vec2(140.0f, hui_widget_metric(widget, HUI_METRIC_CONTROL_HEIGHT));
+static rvn_vec2_t rvn_text_input_measure(rvn_widget_t* widget) {
+	return rvn_vec2(140.0f, rvn_widget_metric(widget, R_METRIC_CONTROL_HEIGHT));
 }
 
-static void hui_text_input_paint(hui_widget_t* widget, HUI_Painter* painter) {
-	hui_text_input_t* input = (hui_text_input_t*)widget;
-	hui_rect_t rect = hui_rect(0.0f, 0.0f, widget->rect.w, widget->rect.h);
-	hui_rect_t area = hui_text_input_area(widget);
-	int focused = (widget->flags & HUI_WF_FOCUSED) != 0;
-	hui_color_t fill = hui_widget_color(widget, HUI_COLOR_INPUT);
-	hui_color_t outline = hui_widget_color(widget, focused ? HUI_COLOR_FOCUS : HUI_COLOR_BORDER);
+static void rvn_text_input_paint(rvn_widget_t* widget, RPainter* painter) {
+	rvn_text_input_t* input = (rvn_text_input_t*)widget;
+	rvn_rect_t rect = rvn_rect(0.0f, 0.0f, widget->rect.w, widget->rect.h);
+	rvn_rect_t area = rvn_text_input_area(widget);
+	int focused = (widget->flags & RVN_WF_FOCUSED) != 0;
+	rvn_color_t fill = rvn_widget_color(widget, R_COLOR_INPUT);
+	rvn_color_t outline = rvn_widget_color(widget, focused ? R_COLOR_FOCUS : R_COLOR_BORDER);
 
-	if (!painter->enabled) fill = hui_color_fade(fill, 0.5f);
-	hui_paint_box(painter, rect, hui_widget_metric(widget, HUI_METRIC_CORNER_RADIUS), fill,
-		hui_widget_metric(widget, HUI_METRIC_BORDER_WIDTH), outline);
+	if (!painter->enabled) fill = rvn_color_fade(fill, 0.5f);
+	if (g_rvn.theme.glass) {
+		/* a field of darker glass; the focus is a ring of the accent color */
+		float radius = rvn_control_radius(widget, rect.h);
+		rvn_paint_surface(painter, widget, rect, radius, RVN_SURFACE_INPUT, 0.0f, 0.0f);
+		if (focused) rvn_paint_box(painter, rect, radius, 0, 1.5f, outline);
+	} else {
+		rvn_paint_box(painter, rect, rvn_widget_metric(widget, R_METRIC_CORNER_RADIUS), fill,
+			rvn_widget_metric(widget, R_METRIC_BORDER_WIDTH), outline);
+	}
 	if (input->edit.length == 0 && input->placeholder && !focused) {
-		hui_paint_push_clip(painter, area);
-		hui_paint_text_in(painter, HUI_INVALID_ID, hui_widget_font_size(widget, 0.0f), area, 0.0f, input->placeholder, -1,
-			hui_widget_color(widget, HUI_COLOR_TEXT_PLACEHOLDER));
-		hui_paint_pop_clip(painter);
+		rvn_paint_push_clip(painter, area);
+		rvn_paint_text_in(painter, R_INVALID_ID, rvn_widget_font_size(widget, 0.0f), area, 0.0f, input->placeholder, -1,
+			rvn_widget_color(widget, R_COLOR_TEXT_PLACEHOLDER));
+		rvn_paint_pop_clip(painter);
 		return;
 	}
-	hui_textedit_paint(&input->edit, widget, painter, area, HUI_INVALID_ID, 0.0f,
-		hui_widget_text_color(widget, painter), focused);
+	rvn_textedit_paint(&input->edit, widget, painter, area, R_INVALID_ID, 0.0f,
+		rvn_widget_text_color(widget, painter), focused);
 }
 
 /* Calls back after an edit. The text is copied: the callback may change it. */
-static void hui_text_input_notify(hui_widget_t* widget, int flags) {
-	hui_text_input_t* input = (hui_text_input_t*)widget;
+static void rvn_text_input_notify(rvn_widget_t* widget, int flags) {
+	rvn_text_input_t* input = (rvn_text_input_t*)widget;
 	char* text;
-	if (!(flags & (HUI_TEXTEDIT_CHANGED | HUI_TEXTEDIT_COMMITTED))) return;
-	text = hui_strdup(input->edit.text);
-	if ((flags & HUI_TEXTEDIT_CHANGED) && input->changed) input->changed(widget->id, text, input->changed_user);
-	if ((flags & HUI_TEXTEDIT_COMMITTED) && hui_widget_alive(widget)) {
+	if (!(flags & (RVN_TEXTEDIT_CHANGED | RVN_TEXTEDIT_COMMITTED))) return;
+	text = rvn_strdup(input->edit.text);
+	if ((flags & RVN_TEXTEDIT_CHANGED) && input->changed) input->changed(widget->id, text, input->changed_user);
+	if ((flags & RVN_TEXTEDIT_COMMITTED) && rvn_widget_alive(widget)) {
 		if (input->committed) input->committed(widget->id, text, input->committed_user);
-		if (hui_widget_alive(widget)) hui_widget_fire_action(widget);
+		if (rvn_widget_alive(widget)) rvn_widget_fire_action(widget);
 	}
-	hui_free(text);
+	rvn_free(text);
 }
 
-static int hui_text_input_event(hui_widget_t* widget, const HUI_Event* event) {
-	hui_text_input_t* input = (hui_text_input_t*)widget;
-	hui_rect_t area = hui_text_input_area(widget);
+static int rvn_text_input_event(rvn_widget_t* widget, const REvent* event) {
+	rvn_text_input_t* input = (rvn_text_input_t*)widget;
+	rvn_rect_t area = rvn_text_input_area(widget);
 	int flags;
 
 	switch (event->type) {
-		case HUI_EVENT_FOCUS_GAINED:
-			hui_textedit_set_focused(&input->edit, widget, HUI_TRUE);
+		case R_EVENT_FOCUS_GAINED:
+			rvn_textedit_set_focused(&input->edit, widget, R_TRUE);
 			/* reaching the field with Tab selects its content, like most toolkits */
-			if (widget->window && widget->window->focus_visible) hui_textedit_select_all(&input->edit);
-			return HUI_TRUE;
-		case HUI_EVENT_FOCUS_LOST:
-			hui_textedit_set_focused(&input->edit, widget, HUI_FALSE);
-			return HUI_TRUE;
-		case HUI_EVENT_MOUSE_DOWN:
-			if (event->button != HUI_MOUSE_LEFT) return HUI_FALSE;
-			hui_textedit_mouse_down(&input->edit, widget, HUI_INVALID_ID, 0.0f, event->local_x - area.x,
-				event->clicks, (event->modifiers & HUI_MOD_SHIFT) != 0);
-			hui_widget_capture_mouse(widget);
-			hui_widget_invalidate_paint(widget);
-			return HUI_TRUE;
-		case HUI_EVENT_MOUSE_MOVE:
-			if (!input->edit.mouse_selecting) return HUI_FALSE;
-			hui_textedit_mouse_drag(&input->edit, widget, HUI_INVALID_ID, 0.0f, event->local_x - area.x);
-			hui_widget_invalidate_paint(widget);
-			return HUI_TRUE;
-		case HUI_EVENT_MOUSE_UP:
-			if (event->button != HUI_MOUSE_LEFT) return HUI_FALSE;
-			input->edit.mouse_selecting = HUI_FALSE;
-			hui_widget_release_mouse(widget);
-			return HUI_TRUE;
-		case HUI_EVENT_KEY_DOWN:
-			flags = hui_textedit_key(&input->edit, event);
-			if (!flags) return HUI_FALSE;
-			hui_widget_invalidate_paint(widget);
-			hui_text_input_notify(widget, flags);
-			return HUI_TRUE;
-		case HUI_EVENT_TEXT:
-			flags = hui_textedit_input(&input->edit, event->codepoint);
-			if (!flags) return HUI_FALSE;
-			hui_widget_invalidate_paint(widget);
-			hui_text_input_notify(widget, flags);
-			return HUI_TRUE;
+			if (widget->window && widget->window->focus_visible) rvn_textedit_select_all(&input->edit);
+			return R_TRUE;
+		case R_EVENT_FOCUS_LOST:
+			rvn_textedit_set_focused(&input->edit, widget, R_FALSE);
+			return R_TRUE;
+		case R_EVENT_MOUSE_DOWN:
+			if (event->button != R_MOUSE_LEFT) return R_FALSE;
+			rvn_textedit_mouse_down(&input->edit, widget, R_INVALID_ID, 0.0f, event->local_x - area.x,
+				event->clicks, (event->modifiers & R_MOD_SHIFT) != 0);
+			rvn_widget_capture_mouse(widget);
+			rvn_widget_invalidate_paint(widget);
+			return R_TRUE;
+		case R_EVENT_MOUSE_MOVE:
+			if (!input->edit.mouse_selecting) return R_FALSE;
+			rvn_textedit_mouse_drag(&input->edit, widget, R_INVALID_ID, 0.0f, event->local_x - area.x);
+			rvn_widget_invalidate_paint(widget);
+			return R_TRUE;
+		case R_EVENT_MOUSE_UP:
+			if (event->button != R_MOUSE_LEFT) return R_FALSE;
+			input->edit.mouse_selecting = R_FALSE;
+			rvn_widget_release_mouse(widget);
+			return R_TRUE;
+		case R_EVENT_KEY_DOWN:
+			flags = rvn_textedit_key(&input->edit, event);
+			if (!flags) return R_FALSE;
+			rvn_widget_invalidate_paint(widget);
+			rvn_text_input_notify(widget, flags);
+			return R_TRUE;
+		case R_EVENT_TEXT:
+			flags = rvn_textedit_input(&input->edit, event->codepoint);
+			if (!flags) return R_FALSE;
+			rvn_widget_invalidate_paint(widget);
+			rvn_text_input_notify(widget, flags);
+			return R_TRUE;
 		default:
-			return HUI_FALSE;
+			return R_FALSE;
 	}
 }
 
-static int hui_text_input_set_attribute(hui_widget_t* widget, const char* name, const char* value) {
-	hui_text_input_t* input = (hui_text_input_t*)widget;
-	if (HUI_ATTR("Text")) {
-		hui_textedit_set_text(&input->edit, value);
-	} else if (HUI_ATTR("Placeholder")) {
-		hui_str_set(&input->placeholder, value);
-	} else if (HUI_ATTR("Password")) {
-		if (!hui_parse_bool(value, &input->edit.password)) return HUI_FALSE;
-	} else if (HUI_ATTR("ReadOnly")) {
-		if (!hui_parse_bool(value, &input->edit.read_only)) return HUI_FALSE;
-	} else if (HUI_ATTR("MaxLength")) {
-		if (!hui_parse_int(value, &input->edit.max_chars)) return HUI_FALSE;
+static int rvn_text_input_set_attribute(rvn_widget_t* widget, const char* name, const char* value) {
+	rvn_text_input_t* input = (rvn_text_input_t*)widget;
+	if (RVN_ATTR("Text")) {
+		rvn_textedit_set_text(&input->edit, value);
+	} else if (RVN_ATTR("Placeholder")) {
+		rvn_str_set(&input->placeholder, value);
+	} else if (RVN_ATTR("Password")) {
+		if (!rvn_parse_bool(value, &input->edit.password)) return R_FALSE;
+	} else if (RVN_ATTR("ReadOnly")) {
+		if (!rvn_parse_bool(value, &input->edit.read_only)) return R_FALSE;
+	} else if (RVN_ATTR("MaxLength")) {
+		if (!rvn_parse_int(value, &input->edit.max_chars)) return R_FALSE;
 	} else {
-		return HUI_FALSE;
+		return R_FALSE;
 	}
-	hui_widget_invalidate_paint(widget);
-	return HUI_TRUE;
+	rvn_widget_invalidate_paint(widget);
+	return R_TRUE;
 }
 
-const hui_widget_class_t hui_class_text_input = {
-	.type = HUI_WIDGET_TEXT_INPUT,
+const rvn_widget_class_t rvn_class_text_input = {
+	.type = R_WIDGET_TEXT_INPUT,
 	.name = "TextInput",
-	.size = sizeof(hui_text_input_t),
-	.flags = HUI_CF_NO_CHILDREN | HUI_CF_FOCUSABLE,
-	.init = hui_text_input_init,
-	.destroy = hui_text_input_destroy,
-	.measure = hui_text_input_measure,
-	.paint = hui_text_input_paint,
-	.event = hui_text_input_event,
-	.set_attribute = hui_text_input_set_attribute
+	.size = sizeof(rvn_text_input_t),
+	.flags = RVN_CF_NO_CHILDREN | RVN_CF_FOCUSABLE,
+	.init = rvn_text_input_init,
+	.destroy = rvn_text_input_destroy,
+	.measure = rvn_text_input_measure,
+	.paint = rvn_text_input_paint,
+	.event = rvn_text_input_event,
+	.set_attribute = rvn_text_input_set_attribute
 };
 
-void HUI_SetTextInputText(HUI_id id, const char* text) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_TEXT_INPUT);
-	if (hui_textedit_set_text(&((hui_text_input_t*)widget)->edit, text)) hui_widget_invalidate_paint(widget);
+void Rtext_input_set_text(Rid id, const char* text) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_TEXT_INPUT);
+	if (rvn_textedit_set_text(&((rvn_text_input_t*)widget)->edit, text)) rvn_widget_invalidate_paint(widget);
 }
 
-const char* HUI_GetTextInputText(HUI_id id) {
-	HUI_WIDGET(widget, id, HUI_WIDGET_TEXT_INPUT, "");
-	return ((hui_text_input_t*)widget)->edit.text;
+const char* Rtext_input_get_text(Rid id) {
+	RVN_WIDGET(widget, id, R_WIDGET_TEXT_INPUT, "");
+	return ((rvn_text_input_t*)widget)->edit.text;
 }
 
-void HUI_SetTextInputPlaceholder(HUI_id id, const char* text) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_TEXT_INPUT);
-	if (hui_str_set(&((hui_text_input_t*)widget)->placeholder, text)) hui_widget_invalidate_paint(widget);
+void Rtext_input_set_placeholder(Rid id, const char* text) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_TEXT_INPUT);
+	if (rvn_str_set(&((rvn_text_input_t*)widget)->placeholder, text)) rvn_widget_invalidate_paint(widget);
 }
 
-void HUI_SetTextInputPassword(HUI_id id, int password) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_TEXT_INPUT);
-	((hui_text_input_t*)widget)->edit.password = password != 0;
-	hui_widget_invalidate_paint(widget);
+void Rtext_input_set_password(Rid id, int password) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_TEXT_INPUT);
+	((rvn_text_input_t*)widget)->edit.password = password != 0;
+	rvn_widget_invalidate_paint(widget);
 }
 
-void HUI_SetTextInputReadOnly(HUI_id id, int read_only) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_TEXT_INPUT);
-	((hui_text_input_t*)widget)->edit.read_only = read_only != 0;
-	hui_widget_invalidate_paint(widget);
+void Rtext_input_set_read_only(Rid id, int read_only) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_TEXT_INPUT);
+	((rvn_text_input_t*)widget)->edit.read_only = read_only != 0;
+	rvn_widget_invalidate_paint(widget);
 }
 
-void HUI_SetTextInputMaxLength(HUI_id id, int max_length) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_TEXT_INPUT);
-	((hui_text_input_t*)widget)->edit.max_chars = max_length > 0 ? max_length : 0;
+void Rtext_input_set_max_length(Rid id, int max_length) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_TEXT_INPUT);
+	((rvn_text_input_t*)widget)->edit.max_chars = max_length > 0 ? max_length : 0;
 }
 
-void HUI_SelectAllText(HUI_id id) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_TEXT_INPUT);
-	hui_textedit_select_all(&((hui_text_input_t*)widget)->edit);
-	hui_widget_invalidate_paint(widget);
+void Rtext_input_select_all(Rid id) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_TEXT_INPUT);
+	rvn_textedit_select_all(&((rvn_text_input_t*)widget)->edit);
+	rvn_widget_invalidate_paint(widget);
 }
 
-void HUI_SetTextInputChangedCallback(HUI_id id, HUI_CTextChanged callback, void* user_data) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_TEXT_INPUT);
-	((hui_text_input_t*)widget)->changed = callback;
-	((hui_text_input_t*)widget)->changed_user = user_data;
+void Rtext_input_set_changed_callback(Rid id, RTextChangedCallback callback, void* user_data) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_TEXT_INPUT);
+	((rvn_text_input_t*)widget)->changed = callback;
+	((rvn_text_input_t*)widget)->changed_user = user_data;
 }
 
-void HUI_SetTextInputCommittedCallback(HUI_id id, HUI_CTextChanged callback, void* user_data) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_TEXT_INPUT);
-	((hui_text_input_t*)widget)->committed = callback;
-	((hui_text_input_t*)widget)->committed_user = user_data;
+void Rtext_input_set_committed_callback(Rid id, RTextChangedCallback callback, void* user_data) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_TEXT_INPUT);
+	((rvn_text_input_t*)widget)->committed = callback;
+	((rvn_text_input_t*)widget)->committed_user = user_data;
 }

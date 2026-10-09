@@ -1,5 +1,5 @@
 /**
- * HUI - core/context.c
+ * Raven - core/context.c
  * Library lifecycle, main loop, posted tasks, timers, actions, clipboard.
  */
 
@@ -7,131 +7,131 @@
 #include "../widgets/common.h"
 #include "../render/renderer.h"
 
-hui_context_t g_hui;
+rvn_context_t g_rvn;
 
-static HUI_BackendVTable g_custom_backend;
+static RBackendVTable g_custom_backend;
 static int g_custom_backend_set;
 
-void hui_tasks_run(void);
+void rvn_tasks_run(void);
 
 /* ---------------------------------------------------------------------------
  *  Guards
  * ------------------------------------------------------------------------- */
 
-int hui_api_check(const char* function) {
-	if (!g_hui.initialized) {
-		hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_ERROR, "%s: HUI is not initialized", function);
-		return HUI_FALSE;
+int rvn_api_check(const char* function) {
+	if (!g_rvn.initialized) {
+		rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_ERROR, "%s: Raven is not initialized", function);
+		return R_FALSE;
 	}
-	if (hui_thread_id() != g_hui.ui_thread) {
-		hui_error(HUI_ERROR_WRONG_THREAD, HUI_SEVERITY_ERROR,
-			"%s must be called from the UI thread (use HUI_PostTask from other threads)", function);
-		return HUI_FALSE;
+	if (rvn_thread_id() != g_rvn.ui_thread) {
+		rvn_error(R_ERROR_WRONG_THREAD, R_SEVERITY_ERROR,
+			"%s must be called from the UI thread (use Rtask_post from other threads)", function);
+		return R_FALSE;
 	}
-	return HUI_TRUE;
+	return R_TRUE;
 }
 
-void hui_dispatch_begin(void) {
-	g_hui.dispatch_depth++;
+void rvn_dispatch_begin(void) {
+	g_rvn.dispatch_depth++;
 }
 
-void hui_dispatch_end(void) {
-	if (--g_hui.dispatch_depth > 0) return;
-	g_hui.dispatch_depth = 0;
+void rvn_dispatch_end(void) {
+	if (--g_rvn.dispatch_depth > 0) return;
+	g_rvn.dispatch_depth = 0;
 	/* nobody up the stack holds pointers any more: release what was deleted */
-	if (g_hui.dead_widget_count) hui_widgets_collect();
-	if (g_hui.dead_window_count) hui_windows_collect();
+	if (g_rvn.dead_widget_count) rvn_widgets_collect();
+	if (g_rvn.dead_window_count) rvn_windows_collect();
 }
 
-void hui_wake(void) {
-	if (g_hui.initialized && g_hui.platform) g_hui.platform->wake();
+void rvn_wake(void) {
+	if (g_rvn.initialized && g_rvn.platform) g_rvn.platform->wake();
 }
 
 /* ---------------------------------------------------------------------------
  *  Initialization
  * ------------------------------------------------------------------------- */
 
-void HUI_RegisterBackend(const HUI_BackendVTable* vtable) {
-	if (g_hui.initialized) {
-		hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_ERROR, "HUI_RegisterBackend must be called before HUI_Init");
+void Rbackend_register(const RBackendVTable* vtable) {
+	if (g_rvn.initialized) {
+		rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_ERROR, "Rbackend_register must be called before Rinit");
 		return;
 	}
 	if (!vtable || !vtable->Init || !vtable->Shutdown || !vtable->CreateSurface || !vtable->DestroySurface ||
 		!vtable->CreateTexture || !vtable->UpdateTexture || !vtable->SetTextureFilter || !vtable->DestroyTexture ||
 		!vtable->RenderFrame || !vtable->WaitIdle) {
-		hui_error(HUI_ERROR_INVALID_VALUE, HUI_SEVERITY_ERROR, "HUI_RegisterBackend: every function of the table is required");
+		rvn_error(R_ERROR_INVALID_VALUE, R_SEVERITY_ERROR, "Rbackend_register: every function of the table is required");
 		return;
 	}
 	g_custom_backend = *vtable;
-	g_custom_backend_set = HUI_TRUE;
+	g_custom_backend_set = R_TRUE;
 }
 
-static const HUI_BackendVTable* hui_select_backend(HUI_EBackend backend) {
+static const RBackendVTable* rvn_select_backend(RBackend backend) {
 	switch (backend) {
-		case HUI_BACKEND_VULKAN:
-#if defined(HUI_BACKEND_VULKAN_ENABLED)
-			return hui_backend_vulkan();
+		case R_BACKEND_VULKAN:
+#if defined(RAVEN_BACKEND_VULKAN_ENABLED)
+			return rvn_backend_vulkan();
 #else
-			hui_error(HUI_ERROR_BACKEND, HUI_SEVERITY_FATAL, "HUI was built without the Vulkan backend");
+			rvn_error(R_ERROR_BACKEND, R_SEVERITY_FATAL, "Raven was built without the Vulkan backend");
 			return NULL;
 #endif
-		case HUI_BACKEND_NULL:
-			return hui_backend_null();
-		case HUI_BACKEND_CUSTOM:
+		case R_BACKEND_NULL:
+			return rvn_backend_null();
+		case R_BACKEND_CUSTOM:
 			if (!g_custom_backend_set) {
-				hui_error(HUI_ERROR_BACKEND, HUI_SEVERITY_FATAL, "HUI_BACKEND_CUSTOM needs HUI_RegisterBackend first");
+				rvn_error(R_ERROR_BACKEND, R_SEVERITY_FATAL, "R_BACKEND_CUSTOM needs Rbackend_register first");
 				return NULL;
 			}
 			return &g_custom_backend;
 	}
-	hui_error(HUI_ERROR_INVALID_ENUM, HUI_SEVERITY_FATAL, "HUI_Init: unknown backend");
+	rvn_error(R_ERROR_INVALID_ENUM, R_SEVERITY_FATAL, "Rinit: unknown backend");
 	return NULL;
 }
 
-int HUI_Init(HUI_EBackend backend) {
-	HUI_InitDesc desc;
+int Rinit(RBackend backend) {
+	RInitDesc desc;
 	memset(&desc, 0, sizeof(desc));
 	desc.backend = backend;
-	return HUI_InitEx(&desc);
+	return Rinit_ex(&desc);
 }
 
-int HUI_InitEx(const HUI_InitDesc* user_desc) {
-	HUI_InitDesc desc;
-	HUI_BackendInitInfo info;
-	const HUI_BackendVTable* backend;
+int Rinit_ex(const RInitDesc* user_desc) {
+	RInitDesc desc;
+	RBackendInitInfo info;
+	const RBackendVTable* backend;
 	int workers, threaded;
 
-	if (g_hui.initialized) {
-		hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_WARNING, "HUI_Init: already initialized");
-		return HUI_FALSE;
+	if (g_rvn.initialized) {
+		rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_WARNING, "Rinit: already initialized");
+		return R_FALSE;
 	}
 	memset(&desc, 0, sizeof(desc));
 	if (user_desc) desc = *user_desc;
-	if (desc.backend == 0) desc.backend = HUI_BACKEND_VULKAN;
+	if (desc.backend == 0) desc.backend = R_BACKEND_VULKAN;
 
-	backend = hui_select_backend(desc.backend);
-	if (!backend) return HUI_FALSE;
+	backend = rvn_select_backend(desc.backend);
+	if (!backend) return R_FALSE;
 
-	memset(&g_hui, 0, sizeof(g_hui));
-	g_hui.ui_thread = hui_thread_id();
-	g_hui.start_time = hui_clock_seconds();
-	g_hui.ui_scale = desc.ui_scale > 0.0f ? desc.ui_scale : 1.0f;
-	g_hui.vsync = !desc.disable_vsync;
-	g_hui.backend = desc.backend;
-	g_hui.default_font = HUI_INVALID_ID;
-	hui_pool_init(&g_hui.windows, HUI_HANDLE_WINDOW);
-	hui_pool_init(&g_hui.widgets, HUI_HANDLE_WIDGET);
-	hui_pool_init(&g_hui.fonts, HUI_HANDLE_FONT);
-	hui_pool_init(&g_hui.textures, HUI_HANDLE_TEXTURE);
-	hui_pool_init(&g_hui.timers, HUI_HANDLE_TIMER);
-	hui_pool_init(&g_hui.tree_items, HUI_HANDLE_TREE_ITEM);
-	hui_mutex_init(&g_hui.task_mutex);
+	memset(&g_rvn, 0, sizeof(g_rvn));
+	g_rvn.ui_thread = rvn_thread_id();
+	g_rvn.start_time = rvn_clock_seconds();
+	g_rvn.ui_scale = desc.ui_scale > 0.0f ? desc.ui_scale : 1.0f;
+	g_rvn.vsync = !desc.disable_vsync;
+	g_rvn.backend = desc.backend;
+	g_rvn.default_font = R_INVALID_ID;
+	rvn_pool_init(&g_rvn.windows, RVN_HANDLE_WINDOW);
+	rvn_pool_init(&g_rvn.widgets, RVN_HANDLE_WIDGET);
+	rvn_pool_init(&g_rvn.fonts, RVN_HANDLE_FONT);
+	rvn_pool_init(&g_rvn.textures, RVN_HANDLE_TEXTURE);
+	rvn_pool_init(&g_rvn.timers, RVN_HANDLE_TIMER);
+	rvn_pool_init(&g_rvn.tree_items, RVN_HANDLE_TREE_ITEM);
+	rvn_mutex_init(&g_rvn.task_mutex);
 
 	/* windowing */
-	g_hui.platform = hui_platform_select(desc.headless);
-	if (!g_hui.platform || !g_hui.platform->init(hui_window_on_platform_event)) {
-		hui_error(HUI_ERROR_PLATFORM, HUI_SEVERITY_FATAL, "HUI_Init: cannot initialize the %s window system",
-			g_hui.platform ? g_hui.platform->name : "native");
+	g_rvn.platform = rvn_platform_select(desc.headless);
+	if (!g_rvn.platform || !g_rvn.platform->init(rvn_window_on_platform_event)) {
+		rvn_error(R_ERROR_PLATFORM, R_SEVERITY_FATAL, "Rinit: cannot initialize the %s window system",
+			g_rvn.platform ? g_rvn.platform->name : "native");
 		goto fail_platform;
 	}
 
@@ -142,232 +142,231 @@ int HUI_InitEx(const HUI_InitDesc* user_desc) {
 	} else if (desc.worker_threads > 0) {
 		workers = desc.worker_threads;
 	} else {
-		workers = hui_cpu_count() - 1 - (threaded ? 1 : 0);
-		workers = hui_clampi(workers, 1, 16);
+		workers = rvn_cpu_count() - 1 - (threaded ? 1 : 0);
+		workers = rvn_clampi(workers, 1, 16);
 	}
-	hui_jobs_init(workers);
+	rvn_jobs_init(workers);
 
 	/* rendering */
 	memset(&info, 0, sizeof(info));
-	info.app_name = desc.app_name ? desc.app_name : "HUI application";
+	info.app_name = desc.app_name ? desc.app_name : "Raven application";
 	info.enable_validation = desc.enable_validation;
-	info.vsync = g_hui.vsync;
-	info.window_system = g_hui.platform->system;
-	info.native_display = g_hui.platform->native_display();
-	if (!hui_renderer_init(backend, &info, threaded)) {
-		hui_error(HUI_ERROR_BACKEND, HUI_SEVERITY_FATAL, "HUI_Init: cannot initialize the %s backend", backend->name);
+	info.vsync = g_rvn.vsync;
+	info.window_system = g_rvn.platform->system;
+	info.native_display = g_rvn.platform->native_display();
+	if (!rvn_renderer_init(backend, &info, threaded)) {
+		rvn_error(R_ERROR_BACKEND, R_SEVERITY_FATAL, "Rinit: cannot initialize the %s backend", backend->name);
 		goto fail_renderer;
 	}
-	hui_renderer_set_wait_service(g_hui.platform->wait_service);
+	rvn_renderer_set_wait_service(g_rvn.platform->wait_service);
 
-	g_hui.initialized = HUI_TRUE;
-	hui_paint_init();
-	hui_theme_apply(HUI_THEME_DARK);
-	hui_theme_reset_metrics();
-	hui_fonts_init();
-	g_hui.theme.font = g_hui.default_font;
-	g_hui.last_update_time = hui_clock_seconds();
-	return HUI_TRUE;
+	g_rvn.initialized = R_TRUE;
+	rvn_paint_init();
+	rvn_theme_apply(R_THEME_DARK);
+	rvn_fonts_init();
+	g_rvn.theme.font = g_rvn.default_font;
+	g_rvn.last_update_time = rvn_clock_seconds();
+	return R_TRUE;
 
 fail_renderer:
-	hui_jobs_shutdown();
-	g_hui.platform->shutdown();
+	rvn_jobs_shutdown();
+	g_rvn.platform->shutdown();
 fail_platform:
-	hui_mutex_destroy(&g_hui.task_mutex);
-	hui_pool_free(&g_hui.windows);
-	hui_pool_free(&g_hui.widgets);
-	hui_pool_free(&g_hui.fonts);
-	hui_pool_free(&g_hui.textures);
-	hui_pool_free(&g_hui.timers);
-	hui_pool_free(&g_hui.tree_items);
-	memset(&g_hui, 0, sizeof(g_hui));
-	return HUI_FALSE;
+	rvn_mutex_destroy(&g_rvn.task_mutex);
+	rvn_pool_free(&g_rvn.windows);
+	rvn_pool_free(&g_rvn.widgets);
+	rvn_pool_free(&g_rvn.fonts);
+	rvn_pool_free(&g_rvn.textures);
+	rvn_pool_free(&g_rvn.timers);
+	rvn_pool_free(&g_rvn.tree_items);
+	memset(&g_rvn, 0, sizeof(g_rvn));
+	return R_FALSE;
 }
 
-void HUI_Shutdown(void) {
+void Rshutdown(void) {
 	uint32_t i;
-	if (!hui_api_check(__func__)) return;
+	if (!rvn_api_check(__func__)) return;
 
 	/* windows first: this deletes every widget that is shown */
-	hui_windows_destroy_all();
+	rvn_windows_destroy_all();
 	/* then the widgets the application created but never attached */
-	for (i = 0; i < g_hui.widgets.used; i++) {
-		hui_widget_t* widget = (hui_widget_t*)hui_pool_at(&g_hui.widgets, i);
+	for (i = 0; i < g_rvn.widgets.used; i++) {
+		rvn_widget_t* widget = (rvn_widget_t*)rvn_pool_at(&g_rvn.widgets, i);
 		/* internal widgets are destroyed by the widget that owns them */
-		if (widget && !widget->parent && !(widget->flags & HUI_WF_INTERNAL)) hui_widget_destroy(widget);
+		if (widget && !widget->parent && !(widget->flags & RVN_WF_INTERNAL)) rvn_widget_destroy(widget);
 	}
-	hui_widgets_collect();
+	rvn_widgets_collect();
 
 	/* let the running jobs finish and deliver their results */
-	hui_jobs_shutdown();
-	hui_tasks_run();
+	rvn_jobs_shutdown();
+	rvn_tasks_run();
 
-	for (i = 0; i < g_hui.timers.used; i++) {
-		hui_timer_t* timer = (hui_timer_t*)hui_pool_at(&g_hui.timers, i);
+	for (i = 0; i < g_rvn.timers.used; i++) {
+		rvn_timer_t* timer = (rvn_timer_t*)rvn_pool_at(&g_rvn.timers, i);
 		if (timer) {
-			hui_pool_remove(&g_hui.timers, timer->id);
-			hui_free(timer);
+			rvn_pool_remove(&g_rvn.timers, timer->id);
+			rvn_free(timer);
 		}
 	}
 
-	hui_xml_shutdown();
-	hui_fonts_shutdown();
-	hui_textures_shutdown();
-	hui_paint_shutdown();
-	hui_renderer_shutdown();
-	g_hui.platform->shutdown();
+	rvn_xml_shutdown();
+	rvn_fonts_shutdown();
+	rvn_textures_shutdown();
+	rvn_paint_shutdown();
+	rvn_renderer_shutdown();
+	g_rvn.platform->shutdown();
 
-	for (i = 0; i < g_hui.action_count; i++) hui_free(g_hui.actions[i].name);
-	hui_free(g_hui.actions);
-	hui_free(g_hui.tasks);
-	hui_free(g_hui.dead_widgets);
-	hui_free(g_hui.dead_windows);
-	hui_free(g_hui.clipboard);
-	hui_free(g_hui.xml_base_path);
-	hui_mutex_destroy(&g_hui.task_mutex);
-	hui_pool_free(&g_hui.windows);
-	hui_pool_free(&g_hui.widgets);
-	hui_pool_free(&g_hui.fonts);
-	hui_pool_free(&g_hui.textures);
-	hui_pool_free(&g_hui.timers);
-	hui_pool_free(&g_hui.tree_items);
-	memset(&g_hui, 0, sizeof(g_hui));
+	for (i = 0; i < g_rvn.action_count; i++) rvn_free(g_rvn.actions[i].name);
+	rvn_free(g_rvn.actions);
+	rvn_free(g_rvn.tasks);
+	rvn_free(g_rvn.dead_widgets);
+	rvn_free(g_rvn.dead_windows);
+	rvn_free(g_rvn.clipboard);
+	rvn_free(g_rvn.xml_base_path);
+	rvn_mutex_destroy(&g_rvn.task_mutex);
+	rvn_pool_free(&g_rvn.windows);
+	rvn_pool_free(&g_rvn.widgets);
+	rvn_pool_free(&g_rvn.fonts);
+	rvn_pool_free(&g_rvn.textures);
+	rvn_pool_free(&g_rvn.timers);
+	rvn_pool_free(&g_rvn.tree_items);
+	memset(&g_rvn, 0, sizeof(g_rvn));
 }
 
-int HUI_IsInitialized(void) {
-	return g_hui.initialized;
+int Ris_initialized(void) {
+	return g_rvn.initialized;
 }
 
-const char* HUI_GetVersion(void) {
-	return HUI_VERSION_STRING;
+const char* Rget_version(void) {
+	return RVN_VERSION_STRING;
 }
 
 /* ---------------------------------------------------------------------------
  *  Tasks
  * ------------------------------------------------------------------------- */
 
-void HUI_PostTask(HUI_CTask task, void* user_data) {
+void Rtask_post(RTaskCallback task, void* user_data) {
 	if (!task) return;
-	if (!g_hui.initialized) {
-		hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_ERROR, "HUI_PostTask: HUI is not initialized");
+	if (!g_rvn.initialized) {
+		rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_ERROR, "Rtask_post: Raven is not initialized");
 		return;
 	}
-	hui_mutex_lock(&g_hui.task_mutex);
-	HUI_ARRAY_RESERVE(g_hui.tasks, g_hui.task_cap, g_hui.task_count + 1);
-	g_hui.tasks[g_hui.task_count].function = task;
-	g_hui.tasks[g_hui.task_count].user_data = user_data;
-	g_hui.task_count++;
-	hui_mutex_unlock(&g_hui.task_mutex);
-	hui_wake();
+	rvn_mutex_lock(&g_rvn.task_mutex);
+	RVN_ARRAY_RESERVE(g_rvn.tasks, g_rvn.task_cap, g_rvn.task_count + 1);
+	g_rvn.tasks[g_rvn.task_count].function = task;
+	g_rvn.tasks[g_rvn.task_count].user_data = user_data;
+	g_rvn.task_count++;
+	rvn_mutex_unlock(&g_rvn.task_mutex);
+	rvn_wake();
 }
 
-void hui_tasks_run(void) {
-	hui_task_t* tasks;
+void rvn_tasks_run(void) {
+	rvn_task_t* tasks;
 	uint32_t count, i;
 
 	/* take the whole batch: tasks posted while running wait for the next update */
-	hui_mutex_lock(&g_hui.task_mutex);
-	count = g_hui.task_count;
+	rvn_mutex_lock(&g_rvn.task_mutex);
+	count = g_rvn.task_count;
 	tasks = NULL;
 	if (count) {
-		tasks = (hui_task_t*)hui_alloc(sizeof(hui_task_t) * count);
-		memcpy(tasks, g_hui.tasks, sizeof(hui_task_t) * count);
-		g_hui.task_count = 0;
+		tasks = (rvn_task_t*)rvn_alloc(sizeof(rvn_task_t) * count);
+		memcpy(tasks, g_rvn.tasks, sizeof(rvn_task_t) * count);
+		g_rvn.task_count = 0;
 	}
-	hui_mutex_unlock(&g_hui.task_mutex);
+	rvn_mutex_unlock(&g_rvn.task_mutex);
 
 	if (!count) return;
-	hui_dispatch_begin();
+	rvn_dispatch_begin();
 	for (i = 0; i < count; i++) tasks[i].function(tasks[i].user_data);
-	hui_dispatch_end();
-	hui_free(tasks);
+	rvn_dispatch_end();
+	rvn_free(tasks);
 }
 
-static int hui_tasks_pending(void) {
+static int rvn_tasks_pending(void) {
 	int pending;
-	hui_mutex_lock(&g_hui.task_mutex);
-	pending = g_hui.task_count > 0;
-	hui_mutex_unlock(&g_hui.task_mutex);
+	rvn_mutex_lock(&g_rvn.task_mutex);
+	pending = g_rvn.task_count > 0;
+	rvn_mutex_unlock(&g_rvn.task_mutex);
 	return pending;
 }
 
-void HUI_RunAsync(HUI_CTask task, void* user_data) {
+void Rtask_run_async(RTaskCallback task, void* user_data) {
 	if (!task) return;
-	if (!g_hui.initialized) {
-		hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_ERROR, "HUI_RunAsync: HUI is not initialized");
+	if (!g_rvn.initialized) {
+		rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_ERROR, "Rtask_run_async: Raven is not initialized");
 		return;
 	}
-	hui_jobs_submit(NULL, task, user_data);
+	rvn_jobs_submit(NULL, task, user_data);
 }
 
-void HUI_ParallelFor(HUI_uint count, HUI_uint grain, HUI_CParallelRange function, void* user_data) {
+void Rparallel_for(Ruint count, Ruint grain, RParallelRangeCallback function, void* user_data) {
 	if (!function) return;
-	if (!g_hui.initialized) {
+	if (!g_rvn.initialized) {
 		function(0, count, user_data);
 		return;
 	}
-	hui_jobs_parallel_for(count, grain, function, user_data);
+	rvn_jobs_parallel_for(count, grain, function, user_data);
 }
 
-void HUI_WakeUp(void) {
-	hui_wake();
+void Rwake_up(void) {
+	rvn_wake();
 }
 
-int HUI_GetWorkerThreadCount(void) {
-	return g_hui.initialized ? hui_jobs_worker_count() : 0;
+int Rget_worker_thread_count(void) {
+	return g_rvn.initialized ? rvn_jobs_worker_count() : 0;
 }
 
-int HUI_IsUIThread(void) {
-	return g_hui.initialized && hui_thread_id() == g_hui.ui_thread;
+int Ris_ui_thread(void) {
+	return g_rvn.initialized && rvn_thread_id() == g_rvn.ui_thread;
 }
 
 /* ---------------------------------------------------------------------------
  *  Timers
  * ------------------------------------------------------------------------- */
 
-HUI_id HUI_CreateTimer(double interval_seconds, int repeat, HUI_CTimer callback, void* user_data) {
-	hui_timer_t* timer;
-	HUI_API_GUARD(HUI_INVALID_ID);
+Rid Rtimer_create(double interval_seconds, int repeat, RTimerCallback callback, void* user_data) {
+	rvn_timer_t* timer;
+	RVN_API_GUARD(R_INVALID_ID);
 	if (!callback || interval_seconds < 0.0) {
-		hui_error(HUI_ERROR_INVALID_VALUE, HUI_SEVERITY_ERROR, "HUI_CreateTimer: invalid arguments");
-		return HUI_INVALID_ID;
+		rvn_error(R_ERROR_INVALID_VALUE, R_SEVERITY_ERROR, "Rtimer_create: invalid arguments");
+		return R_INVALID_ID;
 	}
-	timer = (hui_timer_t*)hui_calloc(sizeof(hui_timer_t));
+	timer = (rvn_timer_t*)rvn_calloc(sizeof(rvn_timer_t));
 	/* a repeating timer of zero seconds would spin the loop */
 	timer->interval = repeat && interval_seconds < 0.001 ? 0.001 : interval_seconds;
-	timer->deadline = hui_clock_seconds() + timer->interval;
+	timer->deadline = rvn_clock_seconds() + timer->interval;
 	timer->repeat = repeat != 0;
 	timer->callback = callback;
 	timer->user_data = user_data;
-	timer->id = hui_pool_add(&g_hui.timers, timer);
-	if (timer->id == HUI_INVALID_ID) {
-		hui_free(timer);
-		return HUI_INVALID_ID;
+	timer->id = rvn_pool_add(&g_rvn.timers, timer);
+	if (timer->id == R_INVALID_ID) {
+		rvn_free(timer);
+		return R_INVALID_ID;
 	}
 	return timer->id;
 }
 
-void HUI_DeleteTimer(HUI_id id) {
-	hui_timer_t* timer;
-	HUI_API_GUARD_VOID();
-	timer = (hui_timer_t*)hui_pool_get(&g_hui.timers, id);
+void Rtimer_destroy(Rid id) {
+	rvn_timer_t* timer;
+	RVN_API_GUARD_VOID();
+	timer = (rvn_timer_t*)rvn_pool_get(&g_rvn.timers, id);
 	if (!timer) {
-		hui_error(HUI_ERROR_INVALID_ID, HUI_SEVERITY_ERROR, "HUI_DeleteTimer: invalid timer");
+		rvn_error(R_ERROR_INVALID_ID, R_SEVERITY_ERROR, "Rtimer_destroy: invalid timer");
 		return;
 	}
-	hui_pool_remove(&g_hui.timers, id);
-	hui_free(timer);
+	rvn_pool_remove(&g_rvn.timers, id);
+	rvn_free(timer);
 }
 
-int HUI_IsValidTimer(HUI_id timer) {
-	return g_hui.initialized && hui_pool_get(&g_hui.timers, timer) != NULL;
+int Rtimer_is_valid(Rid timer) {
+	return g_rvn.initialized && rvn_pool_get(&g_rvn.timers, timer) != NULL;
 }
 
-double hui_timers_next_delay(void) {
-	double now = hui_clock_seconds(), best = -1.0;
+double rvn_timers_next_delay(void) {
+	double now = rvn_clock_seconds(), best = -1.0;
 	uint32_t i;
-	for (i = 0; i < g_hui.timers.used; i++) {
-		hui_timer_t* timer = (hui_timer_t*)hui_pool_at(&g_hui.timers, i);
+	for (i = 0; i < g_rvn.timers.used; i++) {
+		rvn_timer_t* timer = (rvn_timer_t*)rvn_pool_at(&g_rvn.timers, i);
 		double delay;
 		if (!timer) continue;
 		delay = timer->deadline - now;
@@ -377,15 +376,15 @@ double hui_timers_next_delay(void) {
 	return best;
 }
 
-static void hui_timers_run(void) {
-	double now = hui_clock_seconds();
-	uint32_t i, used = g_hui.timers.used;
+static void rvn_timers_run(void) {
+	double now = rvn_clock_seconds();
+	uint32_t i, used = g_rvn.timers.used;
 
-	hui_dispatch_begin();
+	rvn_dispatch_begin();
 	for (i = 0; i < used; i++) {
-		hui_timer_t* timer = (hui_timer_t*)hui_pool_at(&g_hui.timers, i);
-		HUI_id id;
-		HUI_CTimer callback;
+		rvn_timer_t* timer = (rvn_timer_t*)rvn_pool_at(&g_rvn.timers, i);
+		Rid id;
+		RTimerCallback callback;
 		void* user_data;
 		if (!timer || timer->deadline > now) continue;
 		id = timer->id;
@@ -396,74 +395,74 @@ static void hui_timers_run(void) {
 			/* do not try to catch up after a long stall */
 			if (timer->deadline < now) timer->deadline = now + timer->interval;
 		} else {
-			hui_pool_remove(&g_hui.timers, id);
-			hui_free(timer);
+			rvn_pool_remove(&g_rvn.timers, id);
+			rvn_free(timer);
 		}
 		callback(id, user_data);
 	}
-	hui_dispatch_end();
+	rvn_dispatch_end();
 }
 
 /* ---------------------------------------------------------------------------
  *  Actions
  * ------------------------------------------------------------------------- */
 
-static hui_action_t* hui_action_find(const char* name) {
+static rvn_action_t* rvn_action_find(const char* name) {
 	uint32_t i;
-	for (i = 0; i < g_hui.action_count; i++) {
-		if (strcmp(g_hui.actions[i].name, name) == 0) return &g_hui.actions[i];
+	for (i = 0; i < g_rvn.action_count; i++) {
+		if (strcmp(g_rvn.actions[i].name, name) == 0) return &g_rvn.actions[i];
 	}
 	return NULL;
 }
 
-void HUI_BindAction(const char* name, HUI_CAction callback, void* user_data) {
-	hui_action_t* action;
-	HUI_API_GUARD_VOID();
+void Raction_bind(const char* name, RActionCallback callback, void* user_data) {
+	rvn_action_t* action;
+	RVN_API_GUARD_VOID();
 	if (!name || !name[0]) {
-		hui_error(HUI_ERROR_INVALID_VALUE, HUI_SEVERITY_ERROR, "HUI_BindAction: empty action name");
+		rvn_error(R_ERROR_INVALID_VALUE, R_SEVERITY_ERROR, "Raction_bind: empty action name");
 		return;
 	}
 	if (!callback) {
-		HUI_UnbindAction(name);
+		Raction_unbind(name);
 		return;
 	}
-	action = hui_action_find(name);
+	action = rvn_action_find(name);
 	if (!action) {
-		HUI_ARRAY_RESERVE(g_hui.actions, g_hui.action_cap, g_hui.action_count + 1);
-		action = &g_hui.actions[g_hui.action_count++];
-		action->name = hui_strdup(name);
+		RVN_ARRAY_RESERVE(g_rvn.actions, g_rvn.action_cap, g_rvn.action_count + 1);
+		action = &g_rvn.actions[g_rvn.action_count++];
+		action->name = rvn_strdup(name);
 	}
 	action->callback = callback;
 	action->user_data = user_data;
 }
 
-void HUI_UnbindAction(const char* name) {
-	hui_action_t* action;
-	HUI_API_GUARD_VOID();
+void Raction_unbind(const char* name) {
+	rvn_action_t* action;
+	RVN_API_GUARD_VOID();
 	if (!name) return;
-	action = hui_action_find(name);
+	action = rvn_action_find(name);
 	if (!action) return;
-	hui_free(action->name);
-	*action = g_hui.actions[--g_hui.action_count];
+	rvn_free(action->name);
+	*action = g_rvn.actions[--g_rvn.action_count];
 }
 
-void HUI_SetDefaultActionHandler(HUI_CAction callback, void* user_data) {
-	HUI_API_GUARD_VOID();
-	g_hui.default_action = callback;
-	g_hui.default_action_user = user_data;
+void Raction_set_default_handler(RActionCallback callback, void* user_data) {
+	RVN_API_GUARD_VOID();
+	g_rvn.default_action = callback;
+	g_rvn.default_action_user = user_data;
 }
 
-void hui_fire_action(HUI_id sender, const char* name) {
-	hui_action_t* action;
+void rvn_fire_action(Rid sender, const char* name) {
+	rvn_action_t* action;
 	if (!name || !name[0]) return;
-	action = hui_action_find(name);
+	action = rvn_action_find(name);
 	if (action) {
 		/* copy: the callback may bind or unbind actions */
-		HUI_CAction callback = action->callback;
+		RActionCallback callback = action->callback;
 		void* user_data = action->user_data;
 		callback(sender, name, user_data);
-	} else if (g_hui.default_action) {
-		g_hui.default_action(sender, name, g_hui.default_action_user);
+	} else if (g_rvn.default_action) {
+		g_rvn.default_action(sender, name, g_rvn.default_action_user);
 	}
 }
 
@@ -471,105 +470,105 @@ void hui_fire_action(HUI_id sender, const char* name) {
  *  Clipboard
  * ------------------------------------------------------------------------- */
 
-void HUI_SetClipboardText(const char* text) {
-	HUI_API_GUARD_VOID();
-	g_hui.platform->clipboard_set(text ? text : "");
+void Rclipboard_set_text(const char* text) {
+	RVN_API_GUARD_VOID();
+	g_rvn.platform->clipboard_set(text ? text : "");
 }
 
-const char* HUI_GetClipboardText(void) {
-	HUI_API_GUARD("");
-	hui_free(g_hui.clipboard);
-	g_hui.clipboard = g_hui.platform->clipboard_get();
-	return g_hui.clipboard ? g_hui.clipboard : "";
+const char* Rclipboard_get_text(void) {
+	RVN_API_GUARD("");
+	rvn_free(g_rvn.clipboard);
+	g_rvn.clipboard = g_rvn.platform->clipboard_get();
+	return g_rvn.clipboard ? g_rvn.clipboard : "";
 }
 
 /* ---------------------------------------------------------------------------
  *  Main loop
  * ------------------------------------------------------------------------- */
 
-void HUI_Quit(int exit_code) {
-	if (!g_hui.initialized) return;
-	hui_atomic_store(&g_hui.exit_code, exit_code);
-	hui_atomic_store(&g_hui.quit_requested, 1);
-	hui_wake();
+void Rquit(int exit_code) {
+	if (!g_rvn.initialized) return;
+	rvn_atomic_store(&g_rvn.exit_code, exit_code);
+	rvn_atomic_store(&g_rvn.quit_requested, 1);
+	rvn_wake();
 }
 
-int HUI_IsRunning(void) {
+int Ris_running(void) {
 	uint32_t i;
-	if (!g_hui.initialized || hui_atomic_load(&g_hui.quit_requested)) return HUI_FALSE;
-	if (!g_hui.had_window) return HUI_TRUE;
-	for (i = 0; i < g_hui.windows.used; i++) {
-		hui_window_t* window = (hui_window_t*)hui_pool_at(&g_hui.windows, i);
-		if (window && !window->dead) return HUI_TRUE;
+	if (!g_rvn.initialized || rvn_atomic_load(&g_rvn.quit_requested)) return R_FALSE;
+	if (!g_rvn.had_window) return R_TRUE;
+	for (i = 0; i < g_rvn.windows.used; i++) {
+		rvn_window_t* window = (rvn_window_t*)rvn_pool_at(&g_rvn.windows, i);
+		if (window && !window->dead) return R_TRUE;
 	}
-	return HUI_FALSE;
+	return R_FALSE;
 }
 
-void HUI_SetFrameCallback(HUI_CFrame callback, void* user_data) {
-	HUI_API_GUARD_VOID();
-	g_hui.frame_callback = callback;
-	g_hui.frame_user = user_data;
+void Rset_frame_callback(RFrameCallback callback, void* user_data) {
+	RVN_API_GUARD_VOID();
+	g_rvn.frame_callback = callback;
+	g_rvn.frame_user = user_data;
 }
 
-double HUI_GetTime(void) {
-	return g_hui.initialized ? hui_clock_seconds() - g_hui.start_time : 0.0;
+double Rget_time(void) {
+	return g_rvn.initialized ? rvn_clock_seconds() - g_rvn.start_time : 0.0;
 }
 
-void HUI_PollEvents(void) {
-	HUI_API_GUARD_VOID();
-	g_hui.platform->pump(0.0);
+void Rpoll_events(void) {
+	RVN_API_GUARD_VOID();
+	g_rvn.platform->pump(0.0);
 }
 
-void HUI_WaitEvents(double timeout_seconds) {
+void Rwait_events(double timeout_seconds) {
 	uint32_t i;
 	double timer_delay;
-	HUI_API_GUARD_VOID();
+	RVN_API_GUARD_VOID();
 
 	/* do not sleep when there is already something to do */
-	if (hui_tasks_pending() || hui_atomic_load(&g_hui.redraw_all) || hui_atomic_load(&g_hui.quit_requested)) {
+	if (rvn_tasks_pending() || rvn_atomic_load(&g_rvn.redraw_all) || rvn_atomic_load(&g_rvn.quit_requested)) {
 		timeout_seconds = 0.0;
 	}
-	for (i = 0; i < g_hui.windows.used && timeout_seconds != 0.0; i++) {
-		hui_window_t* window = (hui_window_t*)hui_pool_at(&g_hui.windows, i);
-		if (window && hui_window_wants_frame(window)) timeout_seconds = 0.0;
+	for (i = 0; i < g_rvn.windows.used && timeout_seconds != 0.0; i++) {
+		rvn_window_t* window = (rvn_window_t*)rvn_pool_at(&g_rvn.windows, i);
+		if (window && rvn_window_wants_frame(window)) timeout_seconds = 0.0;
 	}
-	timer_delay = hui_timers_next_delay();
+	timer_delay = rvn_timers_next_delay();
 	if (timer_delay >= 0.0 && (timeout_seconds < 0.0 || timer_delay < timeout_seconds)) timeout_seconds = timer_delay;
-	g_hui.platform->pump(timeout_seconds);
+	g_rvn.platform->pump(timeout_seconds);
 }
 
-void HUI_Update(void) {
+void Rupdate(void) {
 	double now;
 	uint32_t i;
-	HUI_API_GUARD_VOID();
+	RVN_API_GUARD_VOID();
 	/* a platform modal loop may call back while an update is already running */
-	if (g_hui.in_update) return;
-	g_hui.in_update = HUI_TRUE;
+	if (g_rvn.in_update) return;
+	g_rvn.in_update = R_TRUE;
 
-	hui_tasks_run();
-	hui_timers_run();
+	rvn_tasks_run();
+	rvn_timers_run();
 
-	now = hui_clock_seconds();
-	if (g_hui.frame_callback) {
-		hui_dispatch_begin();
-		g_hui.frame_callback(now - g_hui.last_update_time, g_hui.frame_user);
-		hui_dispatch_end();
+	now = rvn_clock_seconds();
+	if (g_rvn.frame_callback) {
+		rvn_dispatch_begin();
+		g_rvn.frame_callback(now - g_rvn.last_update_time, g_rvn.frame_user);
+		rvn_dispatch_end();
 	}
-	g_hui.last_update_time = now;
+	g_rvn.last_update_time = now;
 
-	if (hui_atomic_exchange(&g_hui.redraw_all, 0)) hui_repaint_all_windows();
-	for (i = 0; i < g_hui.windows.used; i++) {
-		hui_window_t* window = (hui_window_t*)hui_pool_at(&g_hui.windows, i);
-		if (window) hui_window_update(window);
+	if (rvn_atomic_exchange(&g_rvn.redraw_all, 0)) rvn_repaint_all_windows();
+	for (i = 0; i < g_rvn.windows.used; i++) {
+		rvn_window_t* window = (rvn_window_t*)rvn_pool_at(&g_rvn.windows, i);
+		if (window) rvn_window_update(window);
 	}
-	g_hui.in_update = HUI_FALSE;
+	g_rvn.in_update = R_FALSE;
 }
 
-int HUI_Run(void) {
-	HUI_API_GUARD(-1);
-	while (HUI_IsRunning()) {
-		HUI_WaitEvents(-1.0);
-		HUI_Update();
+int Rrun(void) {
+	RVN_API_GUARD(-1);
+	while (Ris_running()) {
+		Rwait_events(-1.0);
+		Rupdate();
 	}
-	return hui_atomic_load(&g_hui.exit_code);
+	return rvn_atomic_load(&g_rvn.exit_code);
 }

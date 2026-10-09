@@ -1,10 +1,10 @@
 /**
- * HUI - core/context.h
- * Global state of the library. Like HRL, HUI has one implicit context.
+ * Raven - core/context.h
+ * Global state of the library. Like HRL, Raven has one implicit context.
  */
 
-#ifndef HUI_CONTEXT_H
-#define HUI_CONTEXT_H
+#ifndef RVN_CONTEXT_H
+#define RVN_CONTEXT_H
 
 #include "base.h"
 #include "thread.h"
@@ -12,73 +12,81 @@
 #include "jobs.h"
 #include "../platform/platform.h"
 
-struct hui_window_t;
-struct hui_widget_t;
+struct rvn_window_t;
+struct rvn_widget_t;
 
-typedef struct hui_theme_t {
-	hui_color_t colors[HUI_COLOR_COUNT];
-	float metrics[HUI_METRIC_COUNT];
-	HUI_id font;
-} hui_theme_t;
+typedef struct rvn_theme_t {
+	rvn_color_t colors[R_COLOR_COUNT];
+	float metrics[R_METRIC_COUNT];
+	Rid font;
+	/** Glass theme: controls are drawn as glass and animate their state. */
+	int glass;
+	/** Dark theme: glass is tinted accordingly. */
+	int dark;
+	/** Background drawn behind the content of windows, or R_INVALID_ID (glass themes). */
+	Rid wallpaper;
+	/** The built-in wallpapers, created on first use: dark, light. */
+	Rid wallpapers[2];
+} rvn_theme_t;
 
-typedef struct hui_task_t {
-	HUI_CTask function;
+typedef struct rvn_task_t {
+	RTaskCallback function;
 	void* user_data;
-} hui_task_t;
+} rvn_task_t;
 
-typedef struct hui_timer_t {
-	HUI_id id;
+typedef struct rvn_timer_t {
+	Rid id;
 	double interval;
 	double deadline;
 	int repeat;
-	HUI_CTimer callback;
+	RTimerCallback callback;
 	void* user_data;
-} hui_timer_t;
+} rvn_timer_t;
 
-typedef struct hui_action_t {
+typedef struct rvn_action_t {
 	char* name;
-	HUI_CAction callback;
+	RActionCallback callback;
 	void* user_data;
-} hui_action_t;
+} rvn_action_t;
 
-typedef struct hui_context_t {
+typedef struct rvn_context_t {
 	int initialized;
 	uint64_t ui_thread;
 	double start_time;
 	float ui_scale;
 	int vsync;
-	HUI_EBackend backend;
-	const hui_platform_t* platform;
+	RBackend backend;
+	const rvn_platform_t* platform;
 
-	hui_pool_t windows;
-	hui_pool_t widgets;
-	hui_pool_t fonts;
-	hui_pool_t textures;
-	hui_pool_t timers;
-	hui_pool_t tree_items;
+	rvn_pool_t windows;
+	rvn_pool_t widgets;
+	rvn_pool_t fonts;
+	rvn_pool_t textures;
+	rvn_pool_t timers;
+	rvn_pool_t tree_items;
 
 	/* main loop */
-	hui_atomic_t quit_requested;
-	hui_atomic_t exit_code;
-	/** Set by HUI_RequestWindowRedraw when called from another thread. */
-	hui_atomic_t redraw_all;
+	rvn_atomic_t quit_requested;
+	rvn_atomic_t exit_code;
+	/** Set by Rwindow_request_redraw when called from another thread. */
+	rvn_atomic_t redraw_all;
 	int had_window;
 	int in_update;
 	double last_update_time;
-	HUI_CFrame frame_callback;
+	RFrameCallback frame_callback;
 	void* frame_user;
 
 	/* tasks posted from other threads */
-	hui_mutex_t task_mutex;
-	hui_task_t* tasks;
+	rvn_mutex_t task_mutex;
+	rvn_task_t* tasks;
 	uint32_t task_count;
 	uint32_t task_cap;
 
 	/* actions */
-	hui_action_t* actions;
+	rvn_action_t* actions;
 	uint32_t action_count;
 	uint32_t action_cap;
-	HUI_CAction default_action;
+	RActionCallback default_action;
 	void* default_action_user;
 
 	/*
@@ -88,52 +96,52 @@ typedef struct hui_context_t {
 	 * application back can finish safely.
 	 */
 	int dispatch_depth;
-	struct hui_widget_t** dead_widgets;
+	struct rvn_widget_t** dead_widgets;
 	uint32_t dead_widget_count;
 	uint32_t dead_widget_cap;
-	struct hui_window_t** dead_windows;
+	struct rvn_window_t** dead_windows;
 	uint32_t dead_window_count;
 	uint32_t dead_window_cap;
 
-	hui_theme_t theme;
-	HUI_id default_font;
+	rvn_theme_t theme;
+	Rid default_font;
 	char* clipboard;
 	char* xml_base_path;
-} hui_context_t;
+} rvn_context_t;
 
-extern hui_context_t g_hui;
+extern rvn_context_t g_rvn;
 
-#define HUI_THEME_COLOR(role) (g_hui.theme.colors[(int)(role) - (int)HUI_COLOR_WINDOW])
-#define HUI_THEME_METRIC(metric) (g_hui.theme.metrics[(int)(metric) - (int)HUI_METRIC_FONT_SIZE])
+#define RVN_THEME_COLOR(role) (g_rvn.theme.colors[(int)(role) - (int)R_COLOR_WINDOW])
+#define RVN_THEME_METRIC(metric) (g_rvn.theme.metrics[(int)(metric) - (int)R_METRIC_FONT_SIZE])
 
 /**
  * Checks that the library is initialized and that the caller is the UI
  * thread; reports an error naming `function` otherwise.
  */
-int hui_api_check(const char* function);
+int rvn_api_check(const char* function);
 
-#define HUI_API_GUARD(result) do { if (!hui_api_check(__func__)) return result; } while (0)
-#define HUI_API_GUARD_VOID() do { if (!hui_api_check(__func__)) return; } while (0)
+#define RVN_API_GUARD(result) do { if (!rvn_api_check(__func__)) return result; } while (0)
+#define RVN_API_GUARD_VOID() do { if (!rvn_api_check(__func__)) return; } while (0)
 
 /** Calls the function bound to an action name (or the default handler). */
-void hui_fire_action(HUI_id sender, const char* action);
+void rvn_fire_action(Rid sender, const char* action);
 
 /** Seconds until the next timer fires, or a negative value when there is none. */
-double hui_timers_next_delay(void);
+double rvn_timers_next_delay(void);
 
 /** Brackets code that calls application callbacks (see dispatch_depth). */
-void hui_dispatch_begin(void);
-void hui_dispatch_end(void);
+void rvn_dispatch_begin(void);
+void rvn_dispatch_end(void);
 
-/** Wakes the event loop so that HUI_Update runs soon. Thread-safe. */
-void hui_wake(void);
+/** Wakes the event loop so that Rupdate runs soon. Thread-safe. */
+void rvn_wake(void);
 
 /**
  * Marks every widget for a new layout and every window for a new paint
  * (theme, font or texture size change). Implemented in widget/window.c.
  */
-void hui_invalidate_all_windows(void);
+void rvn_invalidate_all_windows(void);
 /** Marks every window for a new paint, keeping the layout. Implemented in widget/window.c. */
-void hui_repaint_all_windows(void);
+void rvn_repaint_all_windows(void);
 
-#endif /* HUI_CONTEXT_H */
+#endif /* RVN_CONTEXT_H */

@@ -1,11 +1,11 @@
 /**
- * HUI - core/utf8.c
+ * Raven - core/utf8.c
  * UTF-8 decoding, encoding and caret movement.
  */
 
 #include "base.h"
 
-uint32_t hui_utf8_decode(const char** text, const char* end) {
+uint32_t rvn_utf8_decode(const char** text, const char* end) {
 	const unsigned char* s = (const unsigned char*)*text;
 	const unsigned char* e = (const unsigned char*)end;
 	uint32_t c, cp;
@@ -40,7 +40,7 @@ uint32_t hui_utf8_decode(const char** text, const char* end) {
 	return cp;
 }
 
-int hui_utf8_encode(uint32_t cp, char out[4]) {
+int rvn_utf8_encode(uint32_t cp, char out[4]) {
 	if (cp < 0x80u) {
 		out[0] = (char)cp;
 		return 1;
@@ -63,21 +63,21 @@ int hui_utf8_encode(uint32_t cp, char out[4]) {
 	return 4;
 }
 
-int hui_utf8_next(const char* text, int length, int offset) {
+int rvn_utf8_next(const char* text, int length, int offset) {
 	if (offset >= length) return length;
 	offset++;
 	while (offset < length && ((unsigned char)text[offset] & 0xC0u) == 0x80u) offset++;
 	return offset;
 }
 
-int hui_utf8_prev(const char* text, int offset) {
+int rvn_utf8_prev(const char* text, int offset) {
 	if (offset <= 0) return 0;
 	offset--;
 	while (offset > 0 && ((unsigned char)text[offset] & 0xC0u) == 0x80u) offset--;
 	return offset;
 }
 
-int hui_utf8_count(const char* text, int length) {
+int rvn_utf8_count(const char* text, int length) {
 	int i, count = 0;
 	for (i = 0; i < length; i++) {
 		if (((unsigned char)text[i] & 0xC0u) != 0x80u) count++;

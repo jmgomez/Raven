@@ -1,6 +1,6 @@
 /**
- * HUI - render/vulkan/vk_public.c
- * Public API of hui_vulkan.h.
+ * Raven - render/vulkan/vk_public.c
+ * Public API of raven_vulkan.h.
  *
  * These functions are called from the UI thread. Whatever touches Vulkan
  * objects is forwarded to the render thread, in order with the frames.
@@ -9,38 +9,36 @@
 #include "vk_backend.h"
 #include "../../core/context.h"
 
-#include <hui/hui_vulkan.h>
-
-static int hui_vk_active(const char* function) {
-	if (g_hui.initialized && g_hui.backend == HUI_BACKEND_VULKAN) return HUI_TRUE;
-	if (function) hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_ERROR, "%s: the Vulkan backend is not running", function);
-	return HUI_FALSE;
+static int rvn_vk_active(const char* function) {
+	if (g_rvn.initialized && g_rvn.backend == R_BACKEND_VULKAN) return R_TRUE;
+	if (function) rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_ERROR, "%s: the Vulkan backend is not running", function);
+	return R_FALSE;
 }
 
 /* ---------------------------------------------------------------------------
  *  Sharing a device
  * ------------------------------------------------------------------------- */
 
-const char* const* HUI_Vulkan_GetRequiredInstanceExtensions(HUI_uint* count) {
+const char* const* Rvulkan_get_required_instance_extensions(Ruint* count) {
 	uint32_t found = 0;
-	const char* const* names = hui_vk_instance_extensions(&found);
+	const char* const* names = rvn_vk_instance_extensions(&found);
 	if (count) *count = found;
 	return names;
 }
 
-const char* const* HUI_Vulkan_GetRequiredDeviceExtensions(HUI_uint* count) {
+const char* const* Rvulkan_get_required_device_extensions(Ruint* count) {
 	uint32_t found = 0;
-	const char* const* names = hui_vk_device_extensions(&found);
+	const char* const* names = rvn_vk_device_extensions(&found);
 	if (count) *count = found;
 	return names;
 }
 
-void HUI_Vulkan_SetExternalDevice(void* instance, void* physical_device, void* device, void* queue, HUI_uint queue_family) {
-	if (g_hui.initialized) {
-		hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_ERROR, "HUI_Vulkan_SetExternalDevice must be called before HUI_Init");
+void Rvulkan_set_external_device(void* instance, void* physical_device, void* device, void* queue, Ruint queue_family) {
+	if (g_rvn.initialized) {
+		rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_ERROR, "Rvulkan_set_external_device must be called before Rinit");
 		return;
 	}
-	/* NULL handles go back to a device created by HUI */
+	/* NULL handles go back to a device created by Raven */
 	g_vk_config.external = instance != NULL && device != NULL;
 	g_vk_config.instance = (VkInstance)instance;
 	g_vk_config.physical_device = (VkPhysicalDevice)physical_device;
@@ -49,9 +47,9 @@ void HUI_Vulkan_SetExternalDevice(void* instance, void* physical_device, void* d
 	g_vk_config.queue_family = queue_family;
 }
 
-void HUI_Vulkan_SetQueueLockCallbacks(HUI_CVulkanQueueLock lock, HUI_CVulkanQueueLock unlock, void* user_data) {
-	if (g_hui.initialized) {
-		hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_ERROR, "HUI_Vulkan_SetQueueLockCallbacks must be called before HUI_Init");
+void Rvulkan_set_queue_lock_callbacks(RVulkanQueueLockCallback lock, RVulkanQueueLockCallback unlock, void* user_data) {
+	if (g_rvn.initialized) {
+		rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_ERROR, "Rvulkan_set_queue_lock_callbacks must be called before Rinit");
 		return;
 	}
 	g_vk_config.lock = lock;
@@ -63,102 +61,102 @@ void HUI_Vulkan_SetQueueLockCallbacks(HUI_CVulkanQueueLock lock, HUI_CVulkanQueu
  *  Access to the device
  * ------------------------------------------------------------------------- */
 
-void* HUI_Vulkan_GetInstance(void) {
-	return hui_vk_active(NULL) ? (void*)g_vk.instance : NULL;
+void* Rvulkan_get_instance(void) {
+	return rvn_vk_active(NULL) ? (void*)g_vk.instance : NULL;
 }
 
-void* HUI_Vulkan_GetPhysicalDevice(void) {
-	return hui_vk_active(NULL) ? (void*)g_vk.physical_device : NULL;
+void* Rvulkan_get_physical_device(void) {
+	return rvn_vk_active(NULL) ? (void*)g_vk.physical_device : NULL;
 }
 
-void* HUI_Vulkan_GetDevice(void) {
-	return hui_vk_active(NULL) ? (void*)g_vk.device : NULL;
+void* Rvulkan_get_device(void) {
+	return rvn_vk_active(NULL) ? (void*)g_vk.device : NULL;
 }
 
-void* HUI_Vulkan_GetGraphicsQueue(void) {
-	return hui_vk_active(NULL) ? (void*)g_vk.queue : NULL;
+void* Rvulkan_get_graphics_queue(void) {
+	return rvn_vk_active(NULL) ? (void*)g_vk.queue : NULL;
 }
 
-HUI_uint HUI_Vulkan_GetGraphicsQueueFamily(void) {
-	return hui_vk_active(NULL) ? g_vk.queue_family : 0;
+Ruint Rvulkan_get_graphics_queue_family(void) {
+	return rvn_vk_active(NULL) ? g_vk.queue_family : 0;
 }
 
 /* ---------------------------------------------------------------------------
  *  Textures
  * ------------------------------------------------------------------------- */
 
-typedef struct hui_vk_texture_call_t {
-	HUI_id id;
+typedef struct rvn_vk_texture_call_t {
+	Rid id;
 	VkImageView view;
 	VkSampler sampler;
 	uint32_t width, height;
 	intptr_t handle;
 	uint64_t allocation_size;
 	int result;
-} hui_vk_texture_call_t;
+} rvn_vk_texture_call_t;
 
-static void hui_vk_call_wrap(void* arg) {
-	hui_vk_texture_call_t* call = (hui_vk_texture_call_t*)arg;
-	call->result = hui_vk_texture_wrap(call->id, call->view, call->sampler, call->width, call->height);
+static void rvn_vk_call_wrap(void* arg) {
+	rvn_vk_texture_call_t* call = (rvn_vk_texture_call_t*)arg;
+	call->result = rvn_vk_texture_wrap(call->id, call->view, call->sampler, call->width, call->height);
 }
 
-static void hui_vk_call_create_shared(void* arg) {
-	hui_vk_texture_call_t* call = (hui_vk_texture_call_t*)arg;
-	call->result = hui_vk_texture_create_shared(call->id, call->width, call->height);
+static void rvn_vk_call_create_shared(void* arg) {
+	rvn_vk_texture_call_t* call = (rvn_vk_texture_call_t*)arg;
+	call->result = rvn_vk_texture_create_shared(call->id, call->width, call->height);
 }
 
-static void hui_vk_call_export(void* arg) {
-	hui_vk_texture_call_t* call = (hui_vk_texture_call_t*)arg;
-	call->result = hui_vk_texture_export(call->id, &call->handle, &call->allocation_size);
+static void rvn_vk_call_export(void* arg) {
+	rvn_vk_texture_call_t* call = (rvn_vk_texture_call_t*)arg;
+	call->result = rvn_vk_texture_export(call->id, &call->handle, &call->allocation_size);
 }
 
 /* Registers a texture whose backend object is made by `function` on the render thread. */
-static HUI_id hui_vk_create_external(hui_render_fn function, hui_vk_texture_call_t* call) {
-	hui_texture_t* texture = hui_texture_register();
-	if (!texture) return HUI_INVALID_ID;
+static Rid rvn_vk_create_external(rvn_render_fn function, rvn_vk_texture_call_t* call) {
+	rvn_texture_t* texture = rvn_texture_register();
+	if (!texture) return R_INVALID_ID;
 	call->id = texture->id;
-	hui_renderer_call(function, call, HUI_TRUE);
+	rvn_renderer_call(function, call, R_TRUE);
 	if (!call->result) {
-		hui_pool_remove(&g_hui.textures, texture->id);
-		hui_free(texture);
-		return HUI_INVALID_ID;
+		rvn_pool_remove(&g_rvn.textures, texture->id);
+		rvn_free(texture);
+		return R_INVALID_ID;
 	}
 	texture->width = (int)call->width;
 	texture->height = (int)call->height;
-	texture->external = HUI_TRUE;
-	texture->created = HUI_TRUE;
-	hui_atomic_store(&texture->ready, 1);
+	texture->external = R_TRUE;
+	texture->created = R_TRUE;
+	rvn_atomic_store(&texture->ready, 1);
 	return texture->id;
 }
 
-HUI_id HUI_Vulkan_CreateTextureFromImageView(uint64_t image_view, uint64_t sampler, int width, int height) {
-	hui_vk_texture_call_t call;
-	HUI_API_GUARD(HUI_INVALID_ID);
-	if (!hui_vk_active(__func__)) return HUI_INVALID_ID;
+Rid Rvulkan_texture_create_from_image_view(uint64_t image_view, uint64_t sampler, int width, int height) {
+	rvn_vk_texture_call_t call;
+	RVN_API_GUARD(R_INVALID_ID);
+	if (!rvn_vk_active(__func__)) return R_INVALID_ID;
 	if (image_view == 0 || width <= 0 || height <= 0) {
-		hui_error(HUI_ERROR_INVALID_VALUE, HUI_SEVERITY_ERROR, "HUI_Vulkan_CreateTextureFromImageView: invalid arguments");
-		return HUI_INVALID_ID;
+		rvn_error(R_ERROR_INVALID_VALUE, R_SEVERITY_ERROR, "Rvulkan_texture_create_from_image_view: invalid arguments");
+		return R_INVALID_ID;
 	}
 	memset(&call, 0, sizeof(call));
 	call.view = (VkImageView)(uintptr_t)image_view;
 	call.sampler = (VkSampler)(uintptr_t)sampler;
 	call.width = (uint32_t)width;
 	call.height = (uint32_t)height;
-	return hui_vk_create_external(hui_vk_call_wrap, &call);
+	return rvn_vk_create_external(rvn_vk_call_wrap, &call);
 }
 
-void HUI_Vulkan_SetTextureImageView(HUI_id id, uint64_t image_view, uint64_t sampler, int width, int height) {
-	hui_vk_texture_call_t call;
-	hui_texture_t* texture;
-	HUI_API_GUARD_VOID();
-	if (!hui_vk_active(__func__)) return;
-	texture = hui_texture_get(id);
+void Rvulkan_texture_set_image_view(Rid id, uint64_t image_view, uint64_t sampler, int width, int height) {
+	rvn_vk_texture_call_t call;
+	rvn_texture_t* texture;
+	RVN_API_GUARD_VOID();
+	if (!rvn_vk_active(__func__)) return;
+	texture = rvn_texture_get(id);
 	if (!texture || !texture->external) {
-		hui_error(HUI_ERROR_INVALID_ID, HUI_SEVERITY_ERROR, "HUI_Vulkan_SetTextureImageView: not a texture made from an image view");
+		rvn_error(R_ERROR_INVALID_ID, R_SEVERITY_ERROR, "Rvulkan_texture_set_image_view: not a texture made from an image view");
 		return;
 	}
 	if (image_view == 0 || width <= 0 || height <= 0) {
-		hui_error(HUI_ERROR_INVALID_VALUE, HUI_SEVERITY_ERROR, "HUI_Vulkan_SetTextureImageView: invalid arguments");
+		rvn_error(R_ERROR_INVALID_VALUE, R_SEVERITY_ERROR, "Rvulkan_texture_set_image_view: invalid arguments");
 		return;
 	}
 	memset(&call, 0, sizeof(call));
@@ -167,53 +165,53 @@ void HUI_Vulkan_SetTextureImageView(HUI_id id, uint64_t image_view, uint64_t sam
 	call.sampler = (VkSampler)(uintptr_t)sampler;
 	call.width = (uint32_t)width;
 	call.height = (uint32_t)height;
-	/* waits: once this returns, HUI no longer uses the previous view and it can be destroyed */
-	hui_renderer_call(hui_vk_call_wrap, &call, HUI_TRUE);
+	/* waits: once this returns, Raven no longer uses the previous view and it can be destroyed */
+	rvn_renderer_call(rvn_vk_call_wrap, &call, R_TRUE);
 	texture->width = width;
 	texture->height = height;
-	hui_invalidate_all_windows();
+	rvn_invalidate_all_windows();
 }
 
-HUI_id HUI_Vulkan_CreateSharedTexture(int width, int height) {
-	hui_vk_texture_call_t call;
-	HUI_id id;
-	HUI_API_GUARD(HUI_INVALID_ID);
-	if (!hui_vk_active(__func__)) return HUI_INVALID_ID;
+Rid Rvulkan_texture_create_shared(int width, int height) {
+	rvn_vk_texture_call_t call;
+	Rid id;
+	RVN_API_GUARD(R_INVALID_ID);
+	if (!rvn_vk_active(__func__)) return R_INVALID_ID;
 	if (width <= 0 || height <= 0 || width > 16384 || height > 16384) {
-		hui_error(HUI_ERROR_INVALID_VALUE, HUI_SEVERITY_ERROR, "HUI_Vulkan_CreateSharedTexture: invalid size %d x %d", width, height);
-		return HUI_INVALID_ID;
+		rvn_error(R_ERROR_INVALID_VALUE, R_SEVERITY_ERROR, "Rvulkan_texture_create_shared: invalid size %d x %d", width, height);
+		return R_INVALID_ID;
 	}
 	memset(&call, 0, sizeof(call));
 	call.width = (uint32_t)width;
 	call.height = (uint32_t)height;
-	id = hui_vk_create_external(hui_vk_call_create_shared, &call);
-	if (id == HUI_INVALID_ID) {
-		hui_error(HUI_ERROR_BACKEND, HUI_SEVERITY_ERROR,
-			"HUI_Vulkan_CreateSharedTexture: the device cannot export memory (external memory extension missing)");
+	id = rvn_vk_create_external(rvn_vk_call_create_shared, &call);
+	if (id == R_INVALID_ID) {
+		rvn_error(R_ERROR_BACKEND, R_SEVERITY_ERROR,
+			"Rvulkan_texture_create_shared: the device cannot export memory (external memory extension missing)");
 	}
 	return id;
 }
 
-int HUI_Vulkan_GetSharedTextureInfo(HUI_id id, HUI_SharedTextureInfo* info) {
-	hui_vk_texture_call_t call;
-	hui_texture_t* texture;
-	HUI_API_GUARD(HUI_FALSE);
-	if (!hui_vk_active(__func__)) return HUI_FALSE;
-	texture = hui_texture_get(id);
+int Rvulkan_texture_get_shared_info(Rid id, RSharedTextureInfo* info) {
+	rvn_vk_texture_call_t call;
+	rvn_texture_t* texture;
+	RVN_API_GUARD(R_FALSE);
+	if (!rvn_vk_active(__func__)) return R_FALSE;
+	texture = rvn_texture_get(id);
 	if (!texture || !info) {
-		hui_error(HUI_ERROR_INVALID_ID, HUI_SEVERITY_ERROR, "HUI_Vulkan_GetSharedTextureInfo: invalid arguments");
-		return HUI_FALSE;
+		rvn_error(R_ERROR_INVALID_ID, R_SEVERITY_ERROR, "Rvulkan_texture_get_shared_info: invalid arguments");
+		return R_FALSE;
 	}
 	memset(&call, 0, sizeof(call));
 	call.id = id;
-	hui_renderer_call(hui_vk_call_export, &call, HUI_TRUE);
+	rvn_renderer_call(rvn_vk_call_export, &call, R_TRUE);
 	if (!call.result) {
-		hui_error(HUI_ERROR_INVALID_OPERATION, HUI_SEVERITY_ERROR, "HUI_Vulkan_GetSharedTextureInfo: not a shared texture");
-		return HUI_FALSE;
+		rvn_error(R_ERROR_INVALID_OPERATION, R_SEVERITY_ERROR, "Rvulkan_texture_get_shared_info: not a shared texture");
+		return R_FALSE;
 	}
 	info->handle = call.handle;
 	info->allocation_size = call.allocation_size;
 	info->width = texture->width;
 	info->height = texture->height;
-	return HUI_TRUE;
+	return R_TRUE;
 }

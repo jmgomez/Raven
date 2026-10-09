@@ -1,5 +1,5 @@
 /**
- * HUI - render/image_decode.c
+ * Raven - render/image_decode.c
  * The only file that includes stb_image. Compiled as static functions so it
  * never clashes with another copy of stb linked into the application.
  * Thread-safe: called from the job system for asynchronous textures.
@@ -7,16 +7,16 @@
 
 #include "renderer.h"
 
-#if defined(HUI_WITH_STB_IMAGE)
+#if defined(RAVEN_WITH_STB_IMAGE)
 
 #define STB_IMAGE_STATIC
 #define STBI_NO_STDIO
 #define STBI_NO_HDR
 #define STBI_NO_LINEAR
 #define STBI_NO_FAILURE_STRINGS
-#define STBI_MALLOC(size) hui_alloc(size)
-#define STBI_REALLOC(ptr, size) hui_realloc(ptr, size)
-#define STBI_FREE(ptr) hui_free(ptr)
+#define STBI_MALLOC(size) rvn_alloc(size)
+#define STBI_REALLOC(ptr, size) rvn_realloc(ptr, size)
+#define STBI_FREE(ptr) rvn_free(ptr)
 #define STB_IMAGE_IMPLEMENTATION
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -43,7 +43,7 @@
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
-uint8_t* hui_image_decode(const uint8_t* data, size_t size, int* width, int* height) {
+uint8_t* rvn_image_decode(const uint8_t* data, size_t size, int* width, int* height) {
 	int w = 0, h = 0, channels = 0;
 	uint8_t* pixels;
 	if (!data || size == 0 || size > 0x7FFFFFFFu) return NULL;
@@ -54,13 +54,13 @@ uint8_t* hui_image_decode(const uint8_t* data, size_t size, int* width, int* hei
 	return pixels;
 }
 
-#else /* HUI_WITH_STB_IMAGE */
+#else /* RAVEN_WITH_STB_IMAGE */
 
-uint8_t* hui_image_decode(const uint8_t* data, size_t size, int* width, int* height) {
-	HUI_UNUSED(data);
-	HUI_UNUSED(size);
-	HUI_UNUSED(width);
-	HUI_UNUSED(height);
+uint8_t* rvn_image_decode(const uint8_t* data, size_t size, int* width, int* height) {
+	RVN_UNUSED(data);
+	RVN_UNUSED(size);
+	RVN_UNUSED(width);
+	RVN_UNUSED(height);
 	return NULL;
 }
 

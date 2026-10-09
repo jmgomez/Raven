@@ -1,5 +1,5 @@
 /**
- * HUI - render/draw.c
+ * Raven - render/draw.c
  * Draw list storage and painter primitives.
  */
 
@@ -12,83 +12,98 @@
  *  Draw list
  * ------------------------------------------------------------------------- */
 
-void hui_drawlist_init(hui_drawlist_t* list) {
+void rvn_drawlist_init(rvn_drawlist_t* list) {
 	memset(list, 0, sizeof(*list));
 }
 
-void hui_drawlist_free(hui_drawlist_t* list) {
-	hui_free(list->instances);
-	hui_free(list->commands);
+void rvn_drawlist_free(rvn_drawlist_t* list) {
+	rvn_free(list->instances);
+	rvn_free(list->commands);
 	memset(list, 0, sizeof(*list));
 }
 
-void hui_drawlist_reset(hui_drawlist_t* list) {
+void rvn_drawlist_reset(rvn_drawlist_t* list) {
 	list->instance_count = 0;
 	list->command_count = 0;
 }
 
-static HUI_DrawCommand* hui_drawlist_new_command(hui_drawlist_t* list, HUI_id texture) {
-	HUI_DrawCommand* command;
-	HUI_ARRAY_RESERVE(list->commands, list->command_cap, list->command_count + 1);
+static RDrawCommand* rvn_drawlist_new_command(rvn_drawlist_t* list, Rid texture) {
+	RDrawCommand* command;
+	RVN_ARRAY_RESERVE(list->commands, list->command_cap, list->command_count + 1);
 	command = &list->commands[list->command_count++];
 	memset(command, 0, sizeof(*command));
-	command->type = HUI_DRAW_INSTANCES;
+	command->type = R_DRAW_INSTANCES;
 	command->texture = texture;
-	command->viewport = HUI_INVALID_ID;
+	command->viewport = R_INVALID_ID;
 	command->first_instance = list->instance_count;
 	return command;
 }
 
-HUI_DrawInstance* hui_drawlist_add(hui_drawlist_t* list, HUI_id texture) {
-	HUI_DrawCommand* command = list->command_count ? &list->commands[list->command_count - 1] : NULL;
+RDrawInstance* rvn_drawlist_add(rvn_drawlist_t* list, Rid texture) {
+	RDrawCommand* command = list->command_count ? &list->commands[list->command_count - 1] : NULL;
 
-	if (!command || command->type != HUI_DRAW_INSTANCES) {
-		command = hui_drawlist_new_command(list, texture);
-	} else if (texture != HUI_INVALID_ID && command->texture != texture) {
+	if (!command || command->type != R_DRAW_INSTANCES) {
+		command = rvn_drawlist_new_command(list, texture);
+	} else if (texture != R_INVALID_ID && command->texture != texture) {
 		/* a batch that only holds untextured instances can adopt the texture */
-		if (command->texture == HUI_INVALID_ID) command->texture = texture;
-		else command = hui_drawlist_new_command(list, texture);
+		if (command->texture == R_INVALID_ID) command->texture = texture;
+		else command = rvn_drawlist_new_command(list, texture);
 	}
-	HUI_ARRAY_RESERVE(list->instances, list->instance_cap, list->instance_count + 1);
+	RVN_ARRAY_RESERVE(list->instances, list->instance_cap, list->instance_count + 1);
 	command->instance_count++;
 	return &list->instances[list->instance_count++];
 }
 
-void hui_drawlist_add_callback(hui_drawlist_t* list, const HUI_DrawCommand* callback) {
-	HUI_DrawCommand* command;
-	HUI_ARRAY_RESERVE(list->commands, list->command_cap, list->command_count + 1);
+void rvn_drawlist_add_callback(rvn_drawlist_t* list, const RDrawCommand* callback) {
+	RDrawCommand* command;
+	RVN_ARRAY_RESERVE(list->commands, list->command_cap, list->command_count + 1);
 	command = &list->commands[list->command_count++];
 	*command = *callback;
-	command->type = HUI_DRAW_CALLBACK;
+	command->type = R_DRAW_CALLBACK;
 	command->first_instance = list->instance_count;
 	command->instance_count = 0;
 }
 
-void hui_drawlist_append(hui_drawlist_t* list, const hui_drawlist_t* source) {
-	uint32_t base = list->instance_count;
-	if (source->instance_count) {
-		HUI_ARRAY_RESERVE(list->instances, list->instance_cap, list->instance_count + source->instance_count);
-		memcpy(list->instances + list->instance_count, source->instances,
-			sizeof(HUI_DrawInstance) * source->instance_count);
-		list->instance_count += source->instance_count;
-	}
-	hui_drawlist_append_commands(list, source, base);
+void rvn_drawlist_add_backdrop(rvn_drawlist_t* list, rvn_box_t area) {
+	RDrawCommand* command;
+	RVN_ARRAY_RESERVE(list->commands, list->command_cap, list->command_count + 1);
+	command = &list->commands[list->command_count++];
+	memset(command, 0, sizeof(*command));
+	command->type = R_DRAW_BACKDROP;
+	command->texture = R_INVALID_ID;
+	command->viewport = R_INVALID_ID;
+	command->first_instance = list->instance_count;
+	command->rect[0] = (int)floorf(area.x0);
+	command->rect[1] = (int)floorf(area.y0);
+	command->rect[2] = (int)ceilf(area.x1 - area.x0);
+	command->rect[3] = (int)ceilf(area.y1 - area.y0);
 }
 
-void hui_drawlist_append_commands(hui_drawlist_t* list, const hui_drawlist_t* source, uint32_t base) {
+void rvn_drawlist_append(rvn_drawlist_t* list, const rvn_drawlist_t* source) {
+	uint32_t base = list->instance_count;
+	if (source->instance_count) {
+		RVN_ARRAY_RESERVE(list->instances, list->instance_cap, list->instance_count + source->instance_count);
+		memcpy(list->instances + list->instance_count, source->instances,
+			sizeof(RDrawInstance) * source->instance_count);
+		list->instance_count += source->instance_count;
+	}
+	rvn_drawlist_append_commands(list, source, base);
+}
+
+void rvn_drawlist_append_commands(rvn_drawlist_t* list, const rvn_drawlist_t* source, uint32_t base) {
 	uint32_t i;
 	for (i = 0; i < source->command_count; i++) {
-		const HUI_DrawCommand* in = &source->commands[i];
-		HUI_DrawCommand* last = list->command_count ? &list->commands[list->command_count - 1] : NULL;
-		if (in->type == HUI_DRAW_INSTANCES && in->instance_count == 0) continue;
-		if (in->type == HUI_DRAW_INSTANCES && last && last->type == HUI_DRAW_INSTANCES &&
+		const RDrawCommand* in = &source->commands[i];
+		RDrawCommand* last = list->command_count ? &list->commands[list->command_count - 1] : NULL;
+		if (in->type == R_DRAW_INSTANCES && in->instance_count == 0) continue;
+		if (in->type == R_DRAW_INSTANCES && last && last->type == R_DRAW_INSTANCES &&
 			last->first_instance + last->instance_count == base + in->first_instance &&
-			(last->texture == in->texture || last->texture == HUI_INVALID_ID || in->texture == HUI_INVALID_ID)) {
-			if (last->texture == HUI_INVALID_ID) last->texture = in->texture;
+			(last->texture == in->texture || last->texture == R_INVALID_ID || in->texture == R_INVALID_ID)) {
+			if (last->texture == R_INVALID_ID) last->texture = in->texture;
 			last->instance_count += in->instance_count;
 			continue;
 		}
-		HUI_ARRAY_RESERVE(list->commands, list->command_cap, list->command_count + 1);
+		RVN_ARRAY_RESERVE(list->commands, list->command_cap, list->command_count + 1);
 		list->commands[list->command_count] = *in;
 		list->commands[list->command_count].first_instance = base + in->first_instance;
 		list->command_count++;
@@ -96,11 +111,173 @@ void hui_drawlist_append_commands(hui_drawlist_t* list, const hui_drawlist_t* so
 }
 
 /* ---------------------------------------------------------------------------
+ *  Backdrop captures
+ * ------------------------------------------------------------------------- */
+
+/*
+ * Where the frame differs from its captured copy: what was drawn since the
+ * last capture of that place, as a few rectangles. Exactness does not
+ * matter: a rectangle that is too large only costs a capture that could have
+ * been avoided, or one that is larger than needed.
+ */
+#define RVN_DIRTY_MAX 16
+#define RVN_DIRTY_NEAR 8.0f
+
+typedef struct rvn_dirty_t {
+	rvn_box_t boxes[RVN_DIRTY_MAX];
+	int count;
+	/* box that received the previous rectangle: runs of glyphs and rows extend it */
+	int last;
+} rvn_dirty_t;
+
+static rvn_box_t rvn_box_union(rvn_box_t a, rvn_box_t b) {
+	return rvn_box(rvn_minf(a.x0, b.x0), rvn_minf(a.y0, b.y0), rvn_maxf(a.x1, b.x1), rvn_maxf(a.y1, b.y1));
+}
+
+static float rvn_box_area(rvn_box_t box) {
+	return (box.x1 - box.x0) * (box.y1 - box.y0);
+}
+
+static void rvn_dirty_add(rvn_dirty_t* dirty, rvn_box_t box) {
+	int i, best = 0;
+	float best_growth = 0.0f;
+
+	if (rvn_box_empty(box)) return;
+	if (dirty->last >= 0 && dirty->last < dirty->count) {
+		rvn_box_t* last = &dirty->boxes[dirty->last];
+		if (box.x0 <= last->x1 + RVN_DIRTY_NEAR && box.x1 >= last->x0 - RVN_DIRTY_NEAR &&
+			box.y0 <= last->y1 + RVN_DIRTY_NEAR && box.y1 >= last->y0 - RVN_DIRTY_NEAR) {
+			*last = rvn_box_union(*last, box);
+			return;
+		}
+	}
+	for (i = 0; i < dirty->count; i++) {
+		const rvn_box_t* other = &dirty->boxes[i];
+		if (box.x0 >= other->x0 && box.y0 >= other->y0 && box.x1 <= other->x1 && box.y1 <= other->y1) {
+			dirty->last = i;
+			return;
+		}
+	}
+	if (dirty->count < RVN_DIRTY_MAX) {
+		dirty->last = dirty->count;
+		dirty->boxes[dirty->count++] = box;
+		return;
+	}
+	/* full: grow the rectangle that grows the least */
+	for (i = 0; i < dirty->count; i++) {
+		float growth = rvn_box_area(rvn_box_union(dirty->boxes[i], box)) - rvn_box_area(dirty->boxes[i]);
+		if (i == 0 || growth < best_growth) {
+			best = i;
+			best_growth = growth;
+		}
+	}
+	dirty->boxes[best] = rvn_box_union(dirty->boxes[best], box);
+	dirty->last = best;
+}
+
+/* Pixels an instance can touch. */
+static rvn_box_t rvn_instance_bounds(const RDrawInstance* instance) {
+	rvn_box_t box = rvn_box(instance->rect[0], instance->rect[1], instance->rect[2], instance->rect[3]);
+	float grow = 1.0f;
+	switch (instance->flags & R_PRIM_MASK) {
+		case R_PRIM_SHADOW:
+			grow = instance->border_width + 1.0f;
+			break;
+		case R_PRIM_LINE:
+			box = rvn_box(rvn_minf(instance->rect[0], instance->rect[2]), rvn_minf(instance->rect[1], instance->rect[3]),
+				rvn_maxf(instance->rect[0], instance->rect[2]), rvn_maxf(instance->rect[1], instance->rect[3]));
+			grow = instance->radii[0] * 0.5f + 1.0f;
+			break;
+		case R_PRIM_TRIANGLE:
+			box = rvn_box(rvn_minf(rvn_minf(instance->rect[0], instance->rect[2]), instance->radii[0]),
+				rvn_minf(rvn_minf(instance->rect[1], instance->rect[3]), instance->radii[1]),
+				rvn_maxf(rvn_maxf(instance->rect[0], instance->rect[2]), instance->radii[0]),
+				rvn_maxf(rvn_maxf(instance->rect[1], instance->rect[3]), instance->radii[1]));
+			break;
+		default:
+			break;
+	}
+	box = rvn_box(box.x0 - grow, box.y0 - grow, box.x1 + grow, box.y1 + grow);
+	return rvn_box_intersect(box, rvn_box(instance->clip[0], instance->clip[1], instance->clip[2], instance->clip[3]));
+}
+
+/*
+ * A capture is needed where glass covers something that is not in the copy
+ * yet. It then takes the whole of those rectangles, not only the part under
+ * the glass: the ten buttons of a glass bar cost one capture of the bar, not
+ * ten. Returns R_FALSE when the copy is already up to date under `area`.
+ */
+static int rvn_dirty_take(rvn_dirty_t* dirty, rvn_box_t area, rvn_box_t* region) {
+	int i, found = R_FALSE;
+	*region = area;
+	for (i = 0; i < dirty->count;) {
+		if (rvn_box_overlaps(dirty->boxes[i], area)) {
+			*region = rvn_box_union(*region, dirty->boxes[i]);
+			dirty->boxes[i] = dirty->boxes[--dirty->count];
+			found = R_TRUE;
+		} else {
+			i++;
+		}
+	}
+	if (found) dirty->last = -1;
+	return found;
+}
+
+uint32_t rvn_drawlist_resolve_backdrops(rvn_drawlist_t* list, rvn_box_t frame, uint32_t max) {
+	rvn_dirty_t dirty;
+	uint32_t captures = 0, kept = 0, i, k;
+	int has_backdrop = R_FALSE;
+
+	for (i = 0; i < list->command_count && !has_backdrop; i++) has_backdrop = list->commands[i].type == R_DRAW_BACKDROP;
+	if (!has_backdrop) return 0;
+
+	/* nothing of the frame is in the copy yet: the first capture takes it all */
+	dirty.boxes[0] = frame;
+	dirty.count = 1;
+	dirty.last = 0;
+	for (i = 0; i < list->command_count; i++) {
+		RDrawCommand command = list->commands[i];
+		RDrawCommand* previous = kept ? &list->commands[kept - 1] : NULL;
+
+		if (command.type == R_DRAW_BACKDROP) {
+			rvn_box_t area = rvn_box((float)command.rect[0], (float)command.rect[1],
+				(float)(command.rect[0] + command.rect[2]), (float)(command.rect[1] + command.rect[3]));
+			rvn_box_t region;
+			if (captures >= max || !rvn_dirty_take(&dirty, area, &region)) continue;
+			region = rvn_box_intersect(region, frame);
+			command.rect[0] = (int)floorf(region.x0);
+			command.rect[1] = (int)floorf(region.y0);
+			command.rect[2] = (int)ceilf(region.x1) - command.rect[0];
+			command.rect[3] = (int)ceilf(region.y1) - command.rect[1];
+			captures++;
+		} else if (command.type == R_DRAW_CALLBACK) {
+			rvn_dirty_add(&dirty, rvn_box((float)command.clip[0], (float)command.clip[1],
+				(float)(command.clip[0] + command.clip[2]), (float)(command.clip[1] + command.clip[3])));
+		} else {
+			for (k = 0; k < command.instance_count; k++) {
+				rvn_dirty_add(&dirty, rvn_instance_bounds(&list->instances[command.first_instance + k]));
+			}
+			/* two batches that were only separated by a removed capture become one again */
+			if (previous && previous->type == R_DRAW_INSTANCES &&
+				previous->first_instance + previous->instance_count == command.first_instance &&
+				(previous->texture == command.texture || previous->texture == R_INVALID_ID || command.texture == R_INVALID_ID)) {
+				if (previous->texture == R_INVALID_ID) previous->texture = command.texture;
+				previous->instance_count += command.instance_count;
+				continue;
+			}
+		}
+		list->commands[kept++] = command;
+	}
+	list->command_count = kept;
+	return captures;
+}
+
+/* ---------------------------------------------------------------------------
  *  Painter helpers
  * ------------------------------------------------------------------------- */
 
-hui_box_t hui_paint_snap(const HUI_Painter* painter, hui_rect_t rect) {
-	hui_box_t box;
+rvn_box_t rvn_paint_snap(const RPainter* painter, rvn_rect_t rect) {
+	rvn_box_t box;
 	box.x0 = floorf((painter->ox + rect.x) * painter->scale + 0.5f);
 	box.y0 = floorf((painter->oy + rect.y) * painter->scale + 0.5f);
 	box.x1 = floorf((painter->ox + rect.x + rect.w) * painter->scale + 0.5f);
@@ -109,18 +286,18 @@ hui_box_t hui_paint_snap(const HUI_Painter* painter, hui_rect_t rect) {
 }
 
 /** Thickness in pixels of a logical line width: never thinner than one pixel. */
-static float hui_paint_stroke(const HUI_Painter* painter, float width) {
+static float rvn_paint_stroke(const RPainter* painter, float width) {
 	float pixels;
 	if (width <= 0.0f) return 0.0f;
 	pixels = floorf(width * painter->scale + 0.5f);
 	return pixels < 1.0f ? 1.0f : pixels;
 }
 
-static hui_color_t hui_paint_color(const HUI_Painter* painter, hui_color_t color) {
-	return painter->opacity < 0.999f ? hui_color_fade(color, painter->opacity) : color;
+static rvn_color_t rvn_paint_color(const RPainter* painter, rvn_color_t color) {
+	return painter->opacity < 0.999f ? rvn_color_fade(color, painter->opacity) : color;
 }
 
-static void hui_instance_clip(HUI_DrawInstance* instance, const HUI_Painter* painter) {
+static void rvn_instance_clip(RDrawInstance* instance, const RPainter* painter) {
 	instance->clip[0] = painter->clip.x0;
 	instance->clip[1] = painter->clip.y0;
 	instance->clip[2] = painter->clip.x1;
@@ -128,12 +305,12 @@ static void hui_instance_clip(HUI_DrawInstance* instance, const HUI_Painter* pai
 }
 
 /* Appends an instance unless `bounds` is entirely clipped. */
-static HUI_DrawInstance* hui_paint_emit(HUI_Painter* painter, hui_box_t bounds, HUI_id texture) {
-	HUI_DrawInstance* instance;
-	if (!hui_box_overlaps(bounds, painter->clip)) return NULL;
-	instance = hui_drawlist_add(painter->list, texture);
+static RDrawInstance* rvn_paint_emit(RPainter* painter, rvn_box_t bounds, Rid texture) {
+	RDrawInstance* instance;
+	if (!rvn_box_overlaps(bounds, painter->clip)) return NULL;
+	instance = rvn_drawlist_add(painter->list, texture);
 	memset(instance, 0, sizeof(*instance));
-	hui_instance_clip(instance, painter);
+	rvn_instance_clip(instance, painter);
 	return instance;
 }
 
@@ -141,89 +318,130 @@ static HUI_DrawInstance* hui_paint_emit(HUI_Painter* painter, hui_box_t bounds, 
  *  Primitives
  * ------------------------------------------------------------------------- */
 
-void hui_paint_box4(HUI_Painter* painter, hui_rect_t rect, const float radii[4], hui_color_t fill,
-	float border_width, hui_color_t border_color) {
+void rvn_paint_box4(RPainter* painter, rvn_rect_t rect, const float radii[4], rvn_color_t fill,
+	float border_width, rvn_color_t border_color) {
 
-	HUI_DrawInstance* instance;
-	hui_box_t box;
+	RDrawInstance* instance;
+	rvn_box_t box;
 	float limit;
 	int i;
 
-	fill = hui_paint_color(painter, fill);
-	border_color = hui_paint_color(painter, border_color);
-	if (border_width <= 0.0f || hui_color_a(border_color) == 0) {
+	fill = rvn_paint_color(painter, fill);
+	border_color = rvn_paint_color(painter, border_color);
+	if (border_width <= 0.0f || rvn_color_a(border_color) == 0) {
 		border_width = 0.0f;
 		border_color = 0;
 	}
-	if (hui_color_a(fill) == 0 && border_width <= 0.0f) return;
+	if (rvn_color_a(fill) == 0 && border_width <= 0.0f) return;
 
-	box = hui_paint_snap(painter, rect);
+	box = rvn_paint_snap(painter, rect);
 	if (box.x1 <= box.x0 || box.y1 <= box.y0) return;
-	instance = hui_paint_emit(painter, box, HUI_INVALID_ID);
+	instance = rvn_paint_emit(painter, box, R_INVALID_ID);
 	if (!instance) return;
 
-	limit = hui_minf(box.x1 - box.x0, box.y1 - box.y0) * 0.5f;
+	limit = rvn_minf(box.x1 - box.x0, box.y1 - box.y0) * 0.5f;
 	instance->rect[0] = box.x0;
 	instance->rect[1] = box.y0;
 	instance->rect[2] = box.x1;
 	instance->rect[3] = box.y1;
 	for (i = 0; i < 4; i++) {
-		instance->radii[i] = radii ? hui_clampf(radii[i] * painter->scale, 0.0f, limit) : 0.0f;
+		instance->radii[i] = radii ? rvn_clampf(radii[i] * painter->scale, 0.0f, limit) : 0.0f;
 	}
 	instance->color = fill;
 	instance->border_color = border_color;
-	instance->border_width = hui_paint_stroke(painter, border_width);
-	instance->flags = HUI_PRIM_RECT;
+	instance->border_width = rvn_paint_stroke(painter, border_width);
+	instance->flags = R_PRIM_RECT;
 }
 
-void hui_paint_box(HUI_Painter* painter, hui_rect_t rect, float radius, hui_color_t fill,
-	float border_width, hui_color_t border_color) {
+void rvn_paint_box(RPainter* painter, rvn_rect_t rect, float radius, rvn_color_t fill,
+	float border_width, rvn_color_t border_color) {
 	float radii[4];
 	radii[0] = radii[1] = radii[2] = radii[3] = radius;
-	hui_paint_box4(painter, rect, radii, fill, border_width, border_color);
+	rvn_paint_box4(painter, rect, radii, fill, border_width, border_color);
 }
 
-void hui_paint_rect(HUI_Painter* painter, hui_rect_t rect, hui_color_t color) {
-	hui_paint_box4(painter, rect, NULL, color, 0.0f, 0);
+void rvn_paint_rect(RPainter* painter, rvn_rect_t rect, rvn_color_t color) {
+	rvn_paint_box4(painter, rect, NULL, color, 0.0f, 0);
 }
 
-void hui_paint_shadow(HUI_Painter* painter, hui_rect_t rect, float radius, float blur, hui_color_t color) {
-	HUI_DrawInstance* instance;
-	hui_box_t box, bounds;
+void rvn_paint_shadow(RPainter* painter, rvn_rect_t rect, float radius, float blur, rvn_color_t color) {
+	RDrawInstance* instance;
+	rvn_box_t box, bounds;
 	float blur_px = blur * painter->scale;
 	float limit;
 
-	color = hui_paint_color(painter, color);
-	if (hui_color_a(color) == 0 || blur_px <= 0.0f) return;
-	box = hui_paint_snap(painter, rect);
-	bounds = hui_box(box.x0 - blur_px, box.y0 - blur_px, box.x1 + blur_px, box.y1 + blur_px);
-	instance = hui_paint_emit(painter, bounds, HUI_INVALID_ID);
+	color = rvn_paint_color(painter, color);
+	if (rvn_color_a(color) == 0 || blur_px <= 0.0f) return;
+	box = rvn_paint_snap(painter, rect);
+	bounds = rvn_box(box.x0 - blur_px, box.y0 - blur_px, box.x1 + blur_px, box.y1 + blur_px);
+	instance = rvn_paint_emit(painter, bounds, R_INVALID_ID);
 	if (!instance) return;
-	limit = hui_minf(box.x1 - box.x0, box.y1 - box.y0) * 0.5f;
+	limit = rvn_minf(box.x1 - box.x0, box.y1 - box.y0) * 0.5f;
 	instance->rect[0] = box.x0;
 	instance->rect[1] = box.y0;
 	instance->rect[2] = box.x1;
 	instance->rect[3] = box.y1;
 	instance->radii[0] = instance->radii[1] = instance->radii[2] = instance->radii[3] =
-		hui_clampf(radius * painter->scale, 0.0f, limit);
+		rvn_clampf(radius * painter->scale, 0.0f, limit);
 	instance->color = color;
 	instance->border_width = blur_px;
-	instance->flags = HUI_PRIM_SHADOW;
+	instance->flags = R_PRIM_SHADOW;
 }
 
-void hui_paint_line(HUI_Painter* painter, float x0, float y0, float x1, float y1, float thickness, hui_color_t color) {
-	HUI_DrawInstance* instance;
-	hui_box_t bounds;
+void rvn_paint_glass(RPainter* painter, rvn_rect_t rect, const float radii[4], const rvn_glass_t* glass) {
+	RDrawInstance* instance;
+	rvn_box_t box = rvn_paint_snap(painter, rect);
+	float half, bevel, refraction, margin;
+	int i;
+
+	if (box.x1 <= box.x0 || box.y1 <= box.y0 || painter->opacity <= 0.0f) return;
+	if (!rvn_box_overlaps(box, painter->clip)) return;
+
+	half = rvn_minf(box.x1 - box.x0, box.y1 - box.y0) * 0.5f;
+	bevel = glass->bevel > 0.0f ? glass->bevel : rvn_clampf(rvn_minf(rect.w, rect.h) * 0.42f, 3.0f, 14.0f);
+	bevel = rvn_minf(bevel * painter->scale, half * 0.95f);
+	refraction = glass->refraction * painter->scale;
+
+	/* the backdrop is taken before the shadow, so that the glass does not see its own shadow */
+	/* (what the shader reads around the slab: the bent rim, and the reflection on it) */
+	margin = rvn_maxf(refraction, bevel * 1.5f + 6.0f) + 2.0f;
+	rvn_drawlist_add_backdrop(painter->list, rvn_box_intersect(painter->clip,
+		rvn_box(box.x0 - margin, box.y0 - margin, box.x1 + margin, box.y1 + margin)));
+	if (glass->shadow > 0.0f) {
+		rvn_paint_shadow(painter, rvn_rect(rect.x, rect.y + glass->shadow * 0.25f, rect.w, rect.h),
+			radii ? radii[0] : 0.0f, glass->shadow, glass->shadow_color);
+	}
+
+	instance = rvn_paint_emit(painter, box, R_INVALID_ID);
+	if (!instance) return;
+	instance->rect[0] = box.x0;
+	instance->rect[1] = box.y0;
+	instance->rect[2] = box.x1;
+	instance->rect[3] = box.y1;
+	for (i = 0; i < 4; i++) instance->radii[i] = radii ? rvn_clampf(radii[i] * painter->scale, 0.0f, half) : 0.0f;
+	instance->uv[0] = rvn_clampf(glass->frost, 0.0f, 1.0f);
+	instance->uv[1] = refraction;
+	instance->uv[2] = glass->saturation;
+	instance->uv[3] = glass->glow;
+	instance->color = glass->tint;
+	instance->border_color = glass->rim;
+	instance->border_width = bevel;
+	instance->flags = R_PRIM_GLASS | ((uint32_t)(rvn_clampf(painter->opacity, 0.0f, 1.0f) * 255.0f + 0.5f) << 8);
+}
+
+void rvn_paint_line(RPainter* painter, float x0, float y0, float x1, float y1, float thickness, rvn_color_t color) {
+	RDrawInstance* instance;
+	rvn_box_t bounds;
 	float ax = (painter->ox + x0) * painter->scale, ay = (painter->oy + y0) * painter->scale;
 	float bx = (painter->ox + x1) * painter->scale, by = (painter->oy + y1) * painter->scale;
-	float width = hui_maxf(1.0f, thickness * painter->scale);
+	float width = rvn_maxf(1.0f, thickness * painter->scale);
 	float extent = width * 0.5f + 1.0f;
 
-	color = hui_paint_color(painter, color);
-	if (hui_color_a(color) == 0) return;
-	bounds = hui_box(hui_minf(ax, bx) - extent, hui_minf(ay, by) - extent,
-		hui_maxf(ax, bx) + extent, hui_maxf(ay, by) + extent);
-	instance = hui_paint_emit(painter, bounds, HUI_INVALID_ID);
+	color = rvn_paint_color(painter, color);
+	if (rvn_color_a(color) == 0) return;
+	bounds = rvn_box(rvn_minf(ax, bx) - extent, rvn_minf(ay, by) - extent,
+		rvn_maxf(ax, bx) + extent, rvn_maxf(ay, by) + extent);
+	instance = rvn_paint_emit(painter, bounds, R_INVALID_ID);
 	if (!instance) return;
 	instance->rect[0] = ax;
 	instance->rect[1] = ay;
@@ -231,21 +449,21 @@ void hui_paint_line(HUI_Painter* painter, float x0, float y0, float x1, float y1
 	instance->rect[3] = by;
 	instance->radii[0] = width;
 	instance->color = color;
-	instance->flags = HUI_PRIM_LINE;
+	instance->flags = R_PRIM_LINE;
 }
 
-void hui_paint_triangle(HUI_Painter* painter, float x0, float y0, float x1, float y1, float x2, float y2, hui_color_t color) {
-	HUI_DrawInstance* instance;
-	hui_box_t bounds;
+void rvn_paint_triangle(RPainter* painter, float x0, float y0, float x1, float y1, float x2, float y2, rvn_color_t color) {
+	RDrawInstance* instance;
+	rvn_box_t bounds;
 	float ax = (painter->ox + x0) * painter->scale, ay = (painter->oy + y0) * painter->scale;
 	float bx = (painter->ox + x1) * painter->scale, by = (painter->oy + y1) * painter->scale;
 	float cx = (painter->ox + x2) * painter->scale, cy = (painter->oy + y2) * painter->scale;
 
-	color = hui_paint_color(painter, color);
-	if (hui_color_a(color) == 0) return;
-	bounds = hui_box(hui_minf(ax, hui_minf(bx, cx)) - 1.0f, hui_minf(ay, hui_minf(by, cy)) - 1.0f,
-		hui_maxf(ax, hui_maxf(bx, cx)) + 1.0f, hui_maxf(ay, hui_maxf(by, cy)) + 1.0f);
-	instance = hui_paint_emit(painter, bounds, HUI_INVALID_ID);
+	color = rvn_paint_color(painter, color);
+	if (rvn_color_a(color) == 0) return;
+	bounds = rvn_box(rvn_minf(ax, rvn_minf(bx, cx)) - 1.0f, rvn_minf(ay, rvn_minf(by, cy)) - 1.0f,
+		rvn_maxf(ax, rvn_maxf(bx, cx)) + 1.0f, rvn_maxf(ay, rvn_maxf(by, cy)) + 1.0f);
+	instance = rvn_paint_emit(painter, bounds, R_INVALID_ID);
 	if (!instance) return;
 	instance->rect[0] = ax;
 	instance->rect[1] = ay;
@@ -254,27 +472,27 @@ void hui_paint_triangle(HUI_Painter* painter, float x0, float y0, float x1, floa
 	instance->radii[0] = cx;
 	instance->radii[1] = cy;
 	instance->color = color;
-	instance->flags = HUI_PRIM_TRIANGLE;
+	instance->flags = R_PRIM_TRIANGLE;
 }
 
-void hui_paint_image(HUI_Painter* painter, hui_rect_t rect, HUI_id texture, const float uv[4],
-	hui_color_t tint, float radius) {
+void rvn_paint_image(RPainter* painter, rvn_rect_t rect, Rid texture, const float uv[4],
+	rvn_color_t tint, float radius) {
 
-	HUI_DrawInstance* instance;
-	hui_texture_t* object = hui_texture_get(texture);
-	hui_box_t box;
+	RDrawInstance* instance;
+	rvn_texture_t* object = rvn_texture_get(texture);
+	rvn_box_t box;
 	float limit, r;
 
 	/* a texture still being decoded draws nothing */
 	if (!object || !object->created) return;
-	tint = hui_paint_color(painter, tint);
-	if (hui_color_a(tint) == 0) return;
-	box = hui_paint_snap(painter, rect);
+	tint = rvn_paint_color(painter, tint);
+	if (rvn_color_a(tint) == 0) return;
+	box = rvn_paint_snap(painter, rect);
 	if (box.x1 <= box.x0 || box.y1 <= box.y0) return;
-	instance = hui_paint_emit(painter, box, texture);
+	instance = rvn_paint_emit(painter, box, texture);
 	if (!instance) return;
-	limit = hui_minf(box.x1 - box.x0, box.y1 - box.y0) * 0.5f;
-	r = hui_clampf(radius * painter->scale, 0.0f, limit);
+	limit = rvn_minf(box.x1 - box.x0, box.y1 - box.y0) * 0.5f;
+	r = rvn_clampf(radius * painter->scale, 0.0f, limit);
 	instance->rect[0] = box.x0;
 	instance->rect[1] = box.y0;
 	instance->rect[2] = box.x1;
@@ -285,77 +503,77 @@ void hui_paint_image(HUI_Painter* painter, hui_rect_t rect, HUI_id texture, cons
 	instance->uv[3] = uv ? uv[3] : 1.0f;
 	instance->radii[0] = instance->radii[1] = instance->radii[2] = instance->radii[3] = r;
 	instance->color = tint;
-	instance->flags = HUI_PRIM_RECT | HUI_INSTANCE_TEXTURED;
+	instance->flags = R_PRIM_RECT | R_INSTANCE_TEXTURED;
 }
 
-void hui_paint_text(HUI_Painter* painter, HUI_id font_id, float size, float x, float y,
-	const char* text, int length, hui_color_t color) {
-	hui_font_t* font = hui_font_resolve(font_id);
+void rvn_paint_text(RPainter* painter, Rid font_id, float size, float x, float y,
+	const char* text, int length, rvn_color_t color) {
+	rvn_font_t* font = rvn_font_resolve(font_id);
 	if (!font || !text) return;
-	size = hui_font_size_resolve(size);
-	color = hui_paint_color(painter, color);
-	hui_text_draw(painter->list, font, size * painter->scale,
+	size = rvn_font_size_resolve(size);
+	color = rvn_paint_color(painter, color);
+	rvn_text_draw(painter->list, font, size * painter->scale,
 		floorf((painter->ox + x) * painter->scale + 0.5f),
 		floorf((painter->oy + y) * painter->scale + 0.5f),
 		text, length, color, painter->clip);
 }
 
-void hui_paint_text_in(HUI_Painter* painter, HUI_id font_id, float size, hui_rect_t rect, float align,
-	const char* text, int length, hui_color_t color) {
-	hui_font_t* font = hui_font_resolve(font_id);
-	hui_font_metrics_t metrics;
+void rvn_paint_text_in(RPainter* painter, Rid font_id, float size, rvn_rect_t rect, float align,
+	const char* text, int length, rvn_color_t color) {
+	rvn_font_t* font = rvn_font_resolve(font_id);
+	rvn_font_metrics_t metrics;
 	float width;
 	if (!font || !text) return;
-	size = hui_font_size_resolve(size);
-	hui_font_metrics(font, size, &metrics);
-	width = align > 0.0f ? hui_text_width(font, size, text, length) : 0.0f;
-	hui_paint_text(painter, font_id, size, rect.x + (rect.w - width) * align,
+	size = rvn_font_size_resolve(size);
+	rvn_font_metrics(font, size, &metrics);
+	width = align > 0.0f ? rvn_text_width(font, size, text, length) : 0.0f;
+	rvn_paint_text(painter, font_id, size, rect.x + (rect.w - width) * align,
 		rect.y + (rect.h - metrics.line_height) * 0.5f, text, length, color);
 }
 
-void hui_paint_icon(HUI_Painter* painter, hui_icon_t icon, float cx, float cy, float size, hui_color_t color) {
+void rvn_paint_icon(RPainter* painter, rvn_icon_t icon, float cx, float cy, float size, rvn_color_t color) {
 	float h = size * 0.5f, q = size * 0.25f;
-	float t = hui_maxf(1.25f, size * 0.14f);
+	float t = rvn_maxf(1.25f, size * 0.14f);
 	switch (icon) {
-		case HUI_ICON_CHEVRON_RIGHT:
-			hui_paint_line(painter, cx - q, cy - h, cx + q, cy, t, color);
-			hui_paint_line(painter, cx + q, cy, cx - q, cy + h, t, color);
+		case RVN_ICON_CHEVRON_RIGHT:
+			rvn_paint_line(painter, cx - q, cy - h, cx + q, cy, t, color);
+			rvn_paint_line(painter, cx + q, cy, cx - q, cy + h, t, color);
 			break;
-		case HUI_ICON_CHEVRON_LEFT:
-			hui_paint_line(painter, cx + q, cy - h, cx - q, cy, t, color);
-			hui_paint_line(painter, cx - q, cy, cx + q, cy + h, t, color);
+		case RVN_ICON_CHEVRON_LEFT:
+			rvn_paint_line(painter, cx + q, cy - h, cx - q, cy, t, color);
+			rvn_paint_line(painter, cx - q, cy, cx + q, cy + h, t, color);
 			break;
-		case HUI_ICON_CHEVRON_DOWN:
-			hui_paint_line(painter, cx - h, cy - q, cx, cy + q, t, color);
-			hui_paint_line(painter, cx, cy + q, cx + h, cy - q, t, color);
+		case RVN_ICON_CHEVRON_DOWN:
+			rvn_paint_line(painter, cx - h, cy - q, cx, cy + q, t, color);
+			rvn_paint_line(painter, cx, cy + q, cx + h, cy - q, t, color);
 			break;
-		case HUI_ICON_CHEVRON_UP:
-			hui_paint_line(painter, cx - h, cy + q, cx, cy - q, t, color);
-			hui_paint_line(painter, cx, cy - q, cx + h, cy + q, t, color);
+		case RVN_ICON_CHEVRON_UP:
+			rvn_paint_line(painter, cx - h, cy + q, cx, cy - q, t, color);
+			rvn_paint_line(painter, cx, cy - q, cx + h, cy + q, t, color);
 			break;
-		case HUI_ICON_CHECK:
-			hui_paint_line(painter, cx - h, cy, cx - h * 0.25f, cy + h * 0.7f, t, color);
-			hui_paint_line(painter, cx - h * 0.25f, cy + h * 0.7f, cx + h, cy - h * 0.6f, t, color);
+		case RVN_ICON_CHECK:
+			rvn_paint_line(painter, cx - h, cy, cx - h * 0.25f, cy + h * 0.7f, t, color);
+			rvn_paint_line(painter, cx - h * 0.25f, cy + h * 0.7f, cx + h, cy - h * 0.6f, t, color);
 			break;
-		case HUI_ICON_CROSS:
-			hui_paint_line(painter, cx - h, cy - h, cx + h, cy + h, t, color);
-			hui_paint_line(painter, cx - h, cy + h, cx + h, cy - h, t, color);
+		case RVN_ICON_CROSS:
+			rvn_paint_line(painter, cx - h, cy - h, cx + h, cy + h, t, color);
+			rvn_paint_line(painter, cx - h, cy + h, cx + h, cy - h, t, color);
 			break;
 	}
 }
 
-void hui_paint_push_clip(HUI_Painter* painter, hui_rect_t rect) {
-	if (painter->clip_depth < HUI_PAINTER_CLIP_STACK) {
+void rvn_paint_push_clip(RPainter* painter, rvn_rect_t rect) {
+	if (painter->clip_depth < RVN_PAINTER_CLIP_STACK) {
 		painter->clip_stack[painter->clip_depth] = painter->clip;
 	}
 	painter->clip_depth++;
-	painter->clip = hui_box_intersect(painter->clip, hui_paint_snap(painter, rect));
+	painter->clip = rvn_box_intersect(painter->clip, rvn_paint_snap(painter, rect));
 }
 
-void hui_paint_pop_clip(HUI_Painter* painter) {
+void rvn_paint_pop_clip(RPainter* painter) {
 	if (painter->clip_depth <= 0) return;
 	painter->clip_depth--;
-	if (painter->clip_depth < HUI_PAINTER_CLIP_STACK) {
+	if (painter->clip_depth < RVN_PAINTER_CLIP_STACK) {
 		painter->clip = painter->clip_stack[painter->clip_depth];
 	}
 }
@@ -364,69 +582,84 @@ void hui_paint_pop_clip(HUI_Painter* painter) {
  *  Public drawing API (custom widgets)
  * ------------------------------------------------------------------------- */
 
-void HUI_DrawRect(HUI_Painter* painter, float x, float y, float width, float height,
+void Rdraw_rect(RPainter* painter, float x, float y, float width, float height,
 	float radius, float r, float g, float b, float a) {
 	if (!painter) return;
-	hui_paint_box(painter, hui_rect(x, y, width, height), radius, hui_rgba(r, g, b, a), 0.0f, 0);
+	rvn_paint_box(painter, rvn_rect(x, y, width, height), radius, rvn_rgba(r, g, b, a), 0.0f, 0);
 }
 
-void HUI_DrawRectOutline(HUI_Painter* painter, float x, float y, float width, float height,
+void Rdraw_glass(RPainter* painter, float x, float y, float width, float height,
+	float radius, float r, float g, float b, float a) {
+	rvn_glass_t glass;
+	float radii[4];
+	if (!painter) return;
+	memset(&glass, 0, sizeof(glass));
+	glass.tint = rvn_rgba(r, g, b, a);
+	glass.rim = rvn_rgba(1.0f, 1.0f, 1.0f, g_rvn.theme.dark ? 0.55f : 0.85f);
+	glass.frost = 1.0f;
+	glass.refraction = 12.0f;
+	glass.saturation = 1.5f;
+	radii[0] = radii[1] = radii[2] = radii[3] = radius;
+	rvn_paint_glass(painter, rvn_rect(x, y, width, height), radii, &glass);
+}
+
+void Rdraw_rect_outline(RPainter* painter, float x, float y, float width, float height,
 	float radius, float thickness, float r, float g, float b, float a) {
 	if (!painter) return;
-	hui_paint_box(painter, hui_rect(x, y, width, height), radius, 0, thickness, hui_rgba(r, g, b, a));
+	rvn_paint_box(painter, rvn_rect(x, y, width, height), radius, 0, thickness, rvn_rgba(r, g, b, a));
 }
 
-void HUI_DrawCircle(HUI_Painter* painter, float center_x, float center_y, float radius,
+void Rdraw_circle(RPainter* painter, float center_x, float center_y, float radius,
 	float r, float g, float b, float a) {
 	if (!painter) return;
-	hui_paint_box(painter, hui_rect(center_x - radius, center_y - radius, radius * 2.0f, radius * 2.0f),
-		radius, hui_rgba(r, g, b, a), 0.0f, 0);
+	rvn_paint_box(painter, rvn_rect(center_x - radius, center_y - radius, radius * 2.0f, radius * 2.0f),
+		radius, rvn_rgba(r, g, b, a), 0.0f, 0);
 }
 
-void HUI_DrawLine(HUI_Painter* painter, float x0, float y0, float x1, float y1,
+void Rdraw_line(RPainter* painter, float x0, float y0, float x1, float y1,
 	float thickness, float r, float g, float b, float a) {
 	if (!painter) return;
-	hui_paint_line(painter, x0, y0, x1, y1, thickness, hui_rgba(r, g, b, a));
+	rvn_paint_line(painter, x0, y0, x1, y1, thickness, rvn_rgba(r, g, b, a));
 }
 
-void HUI_DrawTriangle(HUI_Painter* painter, float x0, float y0, float x1, float y1,
+void Rdraw_triangle(RPainter* painter, float x0, float y0, float x1, float y1,
 	float x2, float y2, float r, float g, float b, float a) {
 	if (!painter) return;
-	hui_paint_triangle(painter, x0, y0, x1, y1, x2, y2, hui_rgba(r, g, b, a));
+	rvn_paint_triangle(painter, x0, y0, x1, y1, x2, y2, rvn_rgba(r, g, b, a));
 }
 
-void HUI_DrawImage(HUI_Painter* painter, HUI_id texture, float x, float y, float width, float height,
+void Rdraw_image(RPainter* painter, Rid texture, float x, float y, float width, float height,
 	float r, float g, float b, float a) {
 	if (!painter) return;
-	hui_paint_image(painter, hui_rect(x, y, width, height), texture, NULL, hui_rgba(r, g, b, a), 0.0f);
+	rvn_paint_image(painter, rvn_rect(x, y, width, height), texture, NULL, rvn_rgba(r, g, b, a), 0.0f);
 }
 
-void HUI_DrawText(HUI_Painter* painter, HUI_id font, float size, float x, float y,
+void Rdraw_text(RPainter* painter, Rid font, float size, float x, float y,
 	const char* text, float r, float g, float b, float a) {
-	hui_font_t* resolved;
-	hui_font_metrics_t metrics;
+	rvn_font_t* resolved;
+	rvn_font_metrics_t metrics;
 	const char* line = text;
 	if (!painter || !text) return;
-	resolved = hui_font_resolve(font);
+	resolved = rvn_font_resolve(font);
 	if (!resolved) return;
-	size = hui_font_size_resolve(size);
-	hui_font_metrics(resolved, size, &metrics);
+	size = rvn_font_size_resolve(size);
+	rvn_font_metrics(resolved, size, &metrics);
 	for (;;) {
 		const char* newline = strchr(line, '\n');
 		int length = newline ? (int)(newline - line) : (int)strlen(line);
-		hui_paint_text(painter, font, size, x, y, line, length, hui_rgba(r, g, b, a));
+		rvn_paint_text(painter, font, size, x, y, line, length, rvn_rgba(r, g, b, a));
 		if (!newline) break;
 		line = newline + 1;
 		y += metrics.line_height;
 	}
 }
 
-void HUI_PushClipRect(HUI_Painter* painter, float x, float y, float width, float height) {
+void Rdraw_push_clip_rect(RPainter* painter, float x, float y, float width, float height) {
 	if (!painter) return;
-	hui_paint_push_clip(painter, hui_rect(x, y, width, height));
+	rvn_paint_push_clip(painter, rvn_rect(x, y, width, height));
 }
 
-void HUI_PopClipRect(HUI_Painter* painter) {
+void Rdraw_pop_clip_rect(RPainter* painter) {
 	if (!painter) return;
-	hui_paint_pop_clip(painter);
+	rvn_paint_pop_clip(painter);
 }

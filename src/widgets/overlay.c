@@ -1,5 +1,5 @@
 /**
- * HUI - widgets/overlay.c
+ * Raven - widgets/overlay.c
  * Overlay (Slate SOverlay): children drawn on top of each other, each one
  * aligned in the whole panel by its slot. Spacer: empty space.
  *
@@ -10,23 +10,23 @@
 
 #include "common.h"
 
-const hui_widget_class_t hui_class_overlay = {
-	.type = HUI_WIDGET_OVERLAY,
+const rvn_widget_class_t rvn_class_overlay = {
+	.type = R_WIDGET_OVERLAY,
 	.name = "Overlay",
-	.size = sizeof(hui_widget_t),
-	.flags = HUI_CF_NO_HIT
+	.size = sizeof(rvn_widget_t),
+	.flags = RVN_CF_NO_HIT
 };
 
-/* A spacer has no content: its size comes from HUI_SetWidgetSize / the fill slot. */
-const hui_widget_class_t hui_class_spacer = {
-	.type = HUI_WIDGET_SPACER,
+/* A spacer has no content: its size comes from Rwidget_set_size / the fill slot. */
+const rvn_widget_class_t rvn_class_spacer = {
+	.type = R_WIDGET_SPACER,
 	.name = "Spacer",
-	.size = sizeof(hui_widget_t),
-	.flags = HUI_CF_NO_HIT | HUI_CF_NO_CHILDREN
+	.size = sizeof(rvn_widget_t),
+	.flags = RVN_CF_NO_HIT | RVN_CF_NO_CHILDREN
 };
 
-void HUI_SetSpacerSize(HUI_id id, float width, float height) {
-	HUI_WIDGET_VOID(widget, id, HUI_WIDGET_SPACER);
-	widget->fixed_size = hui_vec2(width, height);
-	hui_widget_invalidate_layout(widget);
+void Rspacer_set_size(Rid id, float width, float height) {
+	RVN_WIDGET_VOID(widget, id, R_WIDGET_SPACER);
+	widget->fixed_size = rvn_vec2(width, height);
+	rvn_widget_invalidate_layout(widget);
 }
