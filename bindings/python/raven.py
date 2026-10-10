@@ -161,6 +161,7 @@ class RWindowFlags(enum.IntFlag):
     R_WINDOW_BORDERLESS = 4
     R_WINDOW_MAXIMIZED = 8
     R_WINDOW_CUSTOM_HEADER = 0x0010
+    R_WINDOW_TRANSPARENT = 0x0020
 
 R_WINDOW_DEFAULT = RWindowFlags.R_WINDOW_DEFAULT
 R_WINDOW_NO_RESIZE = RWindowFlags.R_WINDOW_NO_RESIZE
@@ -168,6 +169,29 @@ R_WINDOW_HIDDEN = RWindowFlags.R_WINDOW_HIDDEN
 R_WINDOW_BORDERLESS = RWindowFlags.R_WINDOW_BORDERLESS
 R_WINDOW_MAXIMIZED = RWindowFlags.R_WINDOW_MAXIMIZED
 R_WINDOW_CUSTOM_HEADER = RWindowFlags.R_WINDOW_CUSTOM_HEADER
+R_WINDOW_TRANSPARENT = RWindowFlags.R_WINDOW_TRANSPARENT
+
+class RBackdrop(enum.IntEnum):
+    """What is seen behind a window created with R_WINDOW_TRANSPARENT.
+    
+      Windows 11          every value
+      Windows 10          TRANSPARENT, BLUR, ACRYLIC (MICA gives ACRYLIC)
+      X11                 TRANSPARENT with any compositing manager; BLUR where
+                          the compositor blurs on request (KWin; picom and
+                          others with their own settings); ACRYLIC and MICA
+                          give BLUR
+      no compositor       nothing: the window stays opaque"""
+    R_BACKDROP_NONE = 0x0400
+    R_BACKDROP_TRANSPARENT = 0x0401
+    R_BACKDROP_BLUR = 0x0402
+    R_BACKDROP_ACRYLIC = 0x0403
+    R_BACKDROP_MICA = 0x0404
+
+R_BACKDROP_NONE = RBackdrop.R_BACKDROP_NONE
+R_BACKDROP_TRANSPARENT = RBackdrop.R_BACKDROP_TRANSPARENT
+R_BACKDROP_BLUR = RBackdrop.R_BACKDROP_BLUR
+R_BACKDROP_ACRYLIC = RBackdrop.R_BACKDROP_ACRYLIC
+R_BACKDROP_MICA = RBackdrop.R_BACKDROP_MICA
 
 class RWindowSystem(enum.IntEnum):
     R_WINDOW_SYSTEM_NONE = 0x0090
@@ -567,6 +591,11 @@ class RColorRole(enum.IntEnum):
     R_COLOR_TOOLTIP = 0x011C
     R_COLOR_TOOLTIP_TEXT = 0x011D
     R_COLOR_SWITCH = 0x011E
+    R_COLOR_SUCCESS = 0x011F
+    R_COLOR_WARNING = 0x0120
+    R_COLOR_DANGER = 0x0121
+    R_COLOR_LINK = 0x0122
+    R_COLOR_CODE = 0x0123
 
 R_COLOR_WINDOW = RColorRole.R_COLOR_WINDOW
 R_COLOR_PANEL = RColorRole.R_COLOR_PANEL
@@ -599,6 +628,11 @@ R_COLOR_SHADOW = RColorRole.R_COLOR_SHADOW
 R_COLOR_TOOLTIP = RColorRole.R_COLOR_TOOLTIP
 R_COLOR_TOOLTIP_TEXT = RColorRole.R_COLOR_TOOLTIP_TEXT
 R_COLOR_SWITCH = RColorRole.R_COLOR_SWITCH
+R_COLOR_SUCCESS = RColorRole.R_COLOR_SUCCESS
+R_COLOR_WARNING = RColorRole.R_COLOR_WARNING
+R_COLOR_DANGER = RColorRole.R_COLOR_DANGER
+R_COLOR_LINK = RColorRole.R_COLOR_LINK
+R_COLOR_CODE = RColorRole.R_COLOR_CODE
 
 class RMetric(enum.IntEnum):
     """Sizes, in logical units."""
@@ -616,6 +650,12 @@ class RMetric(enum.IntEnum):
     R_METRIC_CHECK_SIZE = 0x014B
     R_METRIC_SLIDER_HANDLE_SIZE = 0x014C
     R_METRIC_POPUP_RADIUS = 0x014D
+    R_METRIC_GLASS_FROST = 0x014E
+    R_METRIC_GLASS_REFRACTION = 0x014F
+    R_METRIC_GLASS_SATURATION = 0x0150
+    R_METRIC_GLASS_RIM = 0x0151
+    R_METRIC_GLASS_SHADOW = 0x0152
+    R_METRIC_BLUR_RADIUS = 0x0153
 
 R_METRIC_FONT_SIZE = RMetric.R_METRIC_FONT_SIZE
 R_METRIC_CORNER_RADIUS = RMetric.R_METRIC_CORNER_RADIUS
@@ -631,6 +671,24 @@ R_METRIC_SPLITTER_SIZE = RMetric.R_METRIC_SPLITTER_SIZE
 R_METRIC_CHECK_SIZE = RMetric.R_METRIC_CHECK_SIZE
 R_METRIC_SLIDER_HANDLE_SIZE = RMetric.R_METRIC_SLIDER_HANDLE_SIZE
 R_METRIC_POPUP_RADIUS = RMetric.R_METRIC_POPUP_RADIUS
+R_METRIC_GLASS_FROST = RMetric.R_METRIC_GLASS_FROST
+R_METRIC_GLASS_REFRACTION = RMetric.R_METRIC_GLASS_REFRACTION
+R_METRIC_GLASS_SATURATION = RMetric.R_METRIC_GLASS_SATURATION
+R_METRIC_GLASS_RIM = RMetric.R_METRIC_GLASS_RIM
+R_METRIC_GLASS_SHADOW = RMetric.R_METRIC_GLASS_SHADOW
+R_METRIC_BLUR_RADIUS = RMetric.R_METRIC_BLUR_RADIUS
+
+class RFontStyle(enum.IntEnum):
+    """The styles of a font (Rfont_get_variant)."""
+    R_FONT_REGULAR = 0x0420
+    R_FONT_BOLD = 0x0421
+    R_FONT_ITALIC = 0x0422
+    R_FONT_BOLD_ITALIC = 0x0423
+
+R_FONT_REGULAR = RFontStyle.R_FONT_REGULAR
+R_FONT_BOLD = RFontStyle.R_FONT_BOLD
+R_FONT_ITALIC = RFontStyle.R_FONT_ITALIC
+R_FONT_BOLD_ITALIC = RFontStyle.R_FONT_BOLD_ITALIC
 
 class RFilterType(enum.IntEnum):
     R_FILTER_LINEAR = 0x02C0
@@ -677,6 +735,10 @@ class RWidgetType(enum.IntEnum):
     R_WIDGET_DOCK_AREA = 0x0222
     R_WIDGET_ISLAND = 0x0223
     R_WIDGET_FILE_BROWSER = 0x0224
+    R_WIDGET_BACKGROUND_BLUR = 0x0225
+    R_WIDGET_COLOR_PICKER = 0x0226
+    R_WIDGET_TIMELINE = 0x0227
+    R_WIDGET_NODE_GRAPH = 0x0228
 
 R_WIDGET_VBOX = RWidgetType.R_WIDGET_VBOX
 R_WIDGET_HBOX = RWidgetType.R_WIDGET_HBOX
@@ -715,6 +777,10 @@ R_WIDGET_HEADER_BAR = RWidgetType.R_WIDGET_HEADER_BAR
 R_WIDGET_DOCK_AREA = RWidgetType.R_WIDGET_DOCK_AREA
 R_WIDGET_ISLAND = RWidgetType.R_WIDGET_ISLAND
 R_WIDGET_FILE_BROWSER = RWidgetType.R_WIDGET_FILE_BROWSER
+R_WIDGET_BACKGROUND_BLUR = RWidgetType.R_WIDGET_BACKGROUND_BLUR
+R_WIDGET_COLOR_PICKER = RWidgetType.R_WIDGET_COLOR_PICKER
+R_WIDGET_TIMELINE = RWidgetType.R_WIDGET_TIMELINE
+R_WIDGET_NODE_GRAPH = RWidgetType.R_WIDGET_NODE_GRAPH
 
 class RHAlign(enum.IntEnum):
     R_HALIGN_FILL = 0x0240
@@ -782,6 +848,20 @@ class ROrientation(enum.IntEnum):
 R_HORIZONTAL = ROrientation.R_HORIZONTAL
 R_VERTICAL = ROrientation.R_VERTICAL
 
+class RBlurStyle(enum.IntEnum):
+    """The looks of a R_WIDGET_BACKGROUND_BLUR. The first three are drawn by
+    Raven from what the window shows behind the widget; the last one is the
+    blur of the OS, which sees what is behind the window itself."""
+    R_BLUR_PLAIN = 0x0440
+    R_BLUR_FROSTED = 0x0441
+    R_BLUR_GLASS = 0x0442
+    R_BLUR_NATIVE = 0x0443
+
+R_BLUR_PLAIN = RBlurStyle.R_BLUR_PLAIN
+R_BLUR_FROSTED = RBlurStyle.R_BLUR_FROSTED
+R_BLUR_GLASS = RBlurStyle.R_BLUR_GLASS
+R_BLUR_NATIVE = RBlurStyle.R_BLUR_NATIVE
+
 class RTextAlign(enum.IntEnum):
     R_TEXT_ALIGN_LEFT = 0x0280
     R_TEXT_ALIGN_CENTER = 0x0281
@@ -838,6 +918,7 @@ class RLanguageFlags(enum.IntFlag):
     R_LANGUAGE_INDENT_ON_COLON = 0x0010
     R_LANGUAGE_IGNORE_CASE = 0x0020
     R_LANGUAGE_EMBEDS = 0x0040
+    R_LANGUAGE_FORMATTED_TEXT = 0x0080
 
 R_LANGUAGE_MARKUP = RLanguageFlags.R_LANGUAGE_MARKUP
 R_LANGUAGE_STYLE_SHEET = RLanguageFlags.R_LANGUAGE_STYLE_SHEET
@@ -846,6 +927,7 @@ R_LANGUAGE_CHAR_LITERALS = RLanguageFlags.R_LANGUAGE_CHAR_LITERALS
 R_LANGUAGE_INDENT_ON_COLON = RLanguageFlags.R_LANGUAGE_INDENT_ON_COLON
 R_LANGUAGE_IGNORE_CASE = RLanguageFlags.R_LANGUAGE_IGNORE_CASE
 R_LANGUAGE_EMBEDS = RLanguageFlags.R_LANGUAGE_EMBEDS
+R_LANGUAGE_FORMATTED_TEXT = RLanguageFlags.R_LANGUAGE_FORMATTED_TEXT
 
 class RToken(enum.IntEnum):
     """What a part of the text is, for the language of the editor (Rtext_editor_get_token)."""
@@ -860,6 +942,10 @@ class RToken(enum.IntEnum):
     R_TOKEN_ATTRIBUTE = 0x03A8
     R_TOKEN_PUNCTUATION = 0x03A9
     R_TOKEN_DIRECTIVE = 0x03AA
+    R_TOKEN_HEADING = 0x03AB
+    R_TOKEN_STRONG = 0x03AC
+    R_TOKEN_EMPHASIS = 0x03AD
+    R_TOKEN_LINK = 0x03AE
 
 R_TOKEN_TEXT = RToken.R_TOKEN_TEXT
 R_TOKEN_COMMENT = RToken.R_TOKEN_COMMENT
@@ -872,6 +958,10 @@ R_TOKEN_TAG = RToken.R_TOKEN_TAG
 R_TOKEN_ATTRIBUTE = RToken.R_TOKEN_ATTRIBUTE
 R_TOKEN_PUNCTUATION = RToken.R_TOKEN_PUNCTUATION
 R_TOKEN_DIRECTIVE = RToken.R_TOKEN_DIRECTIVE
+R_TOKEN_HEADING = RToken.R_TOKEN_HEADING
+R_TOKEN_STRONG = RToken.R_TOKEN_STRONG
+R_TOKEN_EMPHASIS = RToken.R_TOKEN_EMPHASIS
+R_TOKEN_LINK = RToken.R_TOKEN_LINK
 
 class RMarkerKind(enum.IntEnum):
     """What a marker says about the text it underlines."""
@@ -910,6 +1000,18 @@ R_DOCK_RIGHT = RDockSide.R_DOCK_RIGHT
 R_DOCK_TOP = RDockSide.R_DOCK_TOP
 R_DOCK_BOTTOM = RDockSide.R_DOCK_BOTTOM
 R_DOCK_TAB = RDockSide.R_DOCK_TAB
+
+class RTimelineItem(enum.IntEnum):
+    """What an item of a timeline is."""
+    R_TIMELINE_NONE = 0x0460
+    R_TIMELINE_CLIP = 0x0461
+    R_TIMELINE_KEY = 0x0462
+    R_TIMELINE_MARKER = 0x0463
+
+R_TIMELINE_NONE = RTimelineItem.R_TIMELINE_NONE
+R_TIMELINE_CLIP = RTimelineItem.R_TIMELINE_CLIP
+R_TIMELINE_KEY = RTimelineItem.R_TIMELINE_KEY
+R_TIMELINE_MARKER = RTimelineItem.R_TIMELINE_MARKER
 
 class RFileDialogFlags(enum.IntFlag):
     R_FILE_DIALOG_MULTIPLE = 1
@@ -1048,6 +1150,7 @@ class RNativeWindow(ctypes.Structure):
         ("display", ctypes.c_void_p),
         ("window", ctypes.c_size_t),
         ("visual", ctypes.c_size_t),
+        ("transparent", ctypes.c_int),
     ]
 
 
@@ -1257,6 +1360,14 @@ def _adapt_RWindowResizeCallback(function):
         function(window, width, height, user_data)
     return call
 
+RWidgetDestroyCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_void_p)
+
+
+def _adapt_RWidgetDestroyCallback(function):
+    def call(widget, user_data):
+        function(widget, user_data)
+    return call
+
 RWidgetEventCallback = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_uint32, ctypes.POINTER(REvent), ctypes.c_void_p)
 
 
@@ -1279,6 +1390,14 @@ RExpanderChangedCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int,
 def _adapt_RExpanderChangedCallback(function):
     def call(expander, expanded, user_data):
         function(expander, expanded, user_data)
+    return call
+
+RLabelLinkCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_char_p, ctypes.c_void_p)
+
+
+def _adapt_RLabelLinkCallback(function):
+    def call(label, url, user_data):
+        function(label, _r(url), user_data)
     return call
 
 RButtonClickedCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_void_p)
@@ -1403,6 +1522,46 @@ def _adapt_RIslandChangedCallback(function):
         function(island, expanded, user_data)
     return call
 
+RColorChangedCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_void_p)
+
+
+def _adapt_RColorChangedCallback(function):
+    def call(picker, r, g, b, a, user_data):
+        function(picker, r, g, b, a, user_data)
+    return call
+
+RTimelineTimeCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_double, ctypes.c_void_p)
+
+
+def _adapt_RTimelineTimeCallback(function):
+    def call(timeline, seconds, user_data):
+        function(timeline, seconds, user_data)
+    return call
+
+RTimelineItemCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int, ctypes.c_void_p)
+
+
+def _adapt_RTimelineItemCallback(function):
+    def call(timeline, item, user_data):
+        function(timeline, item, user_data)
+    return call
+
+RNodeGraphConnectCallback = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_uint32, ctypes.c_int, ctypes.c_int, ctypes.c_void_p)
+
+
+def _adapt_RNodeGraphConnectCallback(function):
+    def call(graph, output_pin, input_pin, user_data):
+        return function(graph, output_pin, input_pin, user_data) or 0
+    return call
+
+RNodeGraphItemCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int, ctypes.c_void_p)
+
+
+def _adapt_RNodeGraphItemCallback(function):
+    def call(graph, item, user_data):
+        function(graph, item, user_data)
+    return call
+
 RDialogClosedCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int, ctypes.c_void_p)
 
 
@@ -1449,6 +1608,30 @@ RMeasureCallback = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.POINTER(ctypes
 def _adapt_RMeasureCallback(function):
     def call(widget, width, height, user_data):
         function(widget, width, height, user_data)
+    return call
+
+RXmlReloadCallback = ctypes.CFUNCTYPE(None, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p)
+
+
+def _adapt_RXmlReloadCallback(function):
+    def call(path, ok, user_data):
+        function(_r(path), ok, user_data)
+    return call
+
+RXmlTagCreateCallback = ctypes.CFUNCTYPE(ctypes.c_uint32, ctypes.c_char_p, ctypes.c_void_p)
+
+
+def _adapt_RXmlTagCreateCallback(function):
+    def call(tag, user_data):
+        return function(_r(tag), user_data) or 0
+    return call
+
+RXmlTagAttributeCallback = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_uint32, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p)
+
+
+def _adapt_RXmlTagAttributeCallback(function):
+    def call(widget, name, value, user_data):
+        return function(widget, _r(name), _r(value), user_data) or 0
     return call
 
 
@@ -1840,6 +2023,19 @@ def Raction_set_default_handler(callback, user_data=None):
     _lib.Raction_set_default_handler(_callback(RActionCallback, _adapt_RActionCallback, callback), user_data)
 
 
+_lib.Ropen_url.argtypes = [ctypes.c_char_p]
+_lib.Ropen_url.restype = ctypes.c_int
+
+
+def Ropen_url(url):
+    """Opens an address with the program the user has for it: a web
+    page in the browser, a mailto: in the mail program, a file in its
+    application. Returns at once.
+    Returns: R_FALSE when the OS could not be asked (nothing tells whether
+    a program then really opened it)."""
+    return _lib.Ropen_url(_s(url))
+
+
 _lib.Rclipboard_set_text.argtypes = [ctypes.c_char_p]
 _lib.Rclipboard_set_text.restype = None
 
@@ -2149,6 +2345,48 @@ def Rwindow_set_background(window, texture):
     _lib.Rwindow_set_background(window, texture)
 
 
+_lib.Rwindow_set_backdrop.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rwindow_set_backdrop.restype = ctypes.c_int
+
+
+def Rwindow_set_backdrop(window, backdrop):
+    """Chooses what shows behind a window created with
+    R_WINDOW_TRANSPARENT (see RBackdrop). With anything but
+    R_BACKDROP_NONE the window is not cleared with its color and the
+    wallpaper of the theme is not drawn: only what the widgets draw hides
+    the screen. In XML: <Window Backdrop="Blur">.
+    Returns: R_TRUE when the window system does it; R_FALSE (the window
+    then stays as it was) without R_WINDOW_TRANSPARENT, or when it cannot."""
+    return _lib.Rwindow_set_backdrop(window, int(backdrop))
+
+
+_lib.Rwindow_get_backdrop.argtypes = [ctypes.c_uint32]
+_lib.Rwindow_get_backdrop.restype = ctypes.c_int
+
+
+def Rwindow_get_backdrop(window):
+    return _e(RBackdrop, _lib.Rwindow_get_backdrop(window))
+
+
+_lib.Rwindow_set_opacity.argtypes = [ctypes.c_uint32, ctypes.c_float]
+_lib.Rwindow_set_opacity.restype = ctypes.c_int
+
+
+def Rwindow_set_opacity(window, opacity):
+    """Opacity of the whole window, its frame included, from 0 to 1:
+    a window that fades, a tool that lets what is under it show.
+    Returns: R_FALSE when the window system cannot do it."""
+    return _lib.Rwindow_set_opacity(window, opacity)
+
+
+_lib.Rwindow_get_opacity.argtypes = [ctypes.c_uint32]
+_lib.Rwindow_get_opacity.restype = ctypes.c_float
+
+
+def Rwindow_get_opacity(window):
+    return _lib.Rwindow_get_opacity(window)
+
+
 _lib.Rwindow_request_redraw.argtypes = [ctypes.c_uint32]
 _lib.Rwindow_request_redraw.restype = None
 
@@ -2225,19 +2463,14 @@ _lib.Rwindow_capture.restype = ctypes.c_void_p
 def Rwindow_capture(window):
     """Reads back the last rendered frame as tightly packed RGBA8 pixels.
     Blocks until the frame is rendered. Free the result with Rpixels_free.
+    The alpha is 255, except for a window that is seen through
+    (R_WINDOW_TRANSPARENT): its pixels are then premultiplied by their
+    alpha, as the window system receives them.
     Returns: NULL when the backend cannot capture."""
     width_ = ctypes.c_int()
     height_ = ctypes.c_int()
     result = _lib.Rwindow_capture(window, ctypes.byref(width_), ctypes.byref(height_))
     return (result, width_.value, height_.value)
-
-
-_lib.Rpixels_free.argtypes = [ctypes.c_void_p]
-_lib.Rpixels_free.restype = None
-
-
-def Rpixels_free(pixels):
-    _lib.Rpixels_free(pixels)
 
 
 _lib.Rwindow_get_focused_widget.argtypes = [ctypes.c_uint32]
@@ -2437,6 +2670,172 @@ def Rtheme_get_font():
     return _lib.Rtheme_get_font()
 
 
+_lib.Rtheme_set_accent.argtypes = [ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rtheme_set_accent.restype = None
+
+
+def Rtheme_set_accent(r, g, b):
+    """Sets the accent color and everything that follows from it: its
+    hovered and pressed shades, the focus outline, the selection, the links."""
+    _lib.Rtheme_set_accent(r, g, b)
+
+
+_lib.Rtheme_set_dark.argtypes = [ctypes.c_int]
+_lib.Rtheme_set_dark.restype = None
+
+
+def Rtheme_set_dark(dark):
+    """Tells whether the theme is a dark one. It decides the tint of
+    the glass, the colors of the code and which wallpaper the glass themes
+    use. Rtheme_apply and the theme files set it."""
+    _lib.Rtheme_set_dark(dark)
+
+
+_lib.Rtheme_is_dark.argtypes = []
+_lib.Rtheme_is_dark.restype = ctypes.c_int
+
+
+def Rtheme_is_dark():
+    return _lib.Rtheme_is_dark()
+
+
+_lib.Rtheme_set_wallpaper.argtypes = [ctypes.c_uint32]
+_lib.Rtheme_set_wallpaper.restype = None
+
+
+def Rtheme_set_wallpaper(texture):
+    """Image drawn behind the content of the windows that have no
+    background of their own, or R_INVALID_ID for none (the window color)."""
+    _lib.Rtheme_set_wallpaper(texture)
+
+
+_lib.Rtheme_get_wallpaper.argtypes = []
+_lib.Rtheme_get_wallpaper.restype = ctypes.c_uint32
+
+
+def Rtheme_get_wallpaper():
+    return _lib.Rtheme_get_wallpaper()
+
+
+_lib.Rtheme_set_style_color.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rtheme_set_style_color.restype = None
+
+
+def Rtheme_set_style_color(widget, style_class, role, r, g, b, a):
+    """Gives a color to the widgets of a type and / or of a class,
+    instead of the color of the theme.
+    widget      Tag of a type of widget ("Button"), or NULL for every type.
+    style_class A class (Rwidget_set_class, Class="..."), or NULL
+                       for the widgets of the type whatever their classes.
+    
+    When several styles give the same value to a widget, the one with a
+    type and a class wins over the one with a class, which wins over the
+    one with a type; between equals, the last one set wins."""
+    _lib.Rtheme_set_style_color(_s(widget), _s(style_class), int(role), r, g, b, a)
+
+
+_lib.Rtheme_set_style_metric.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_float]
+_lib.Rtheme_set_style_metric.restype = None
+
+
+def Rtheme_set_style_metric(widget, style_class, metric, value):
+    _lib.Rtheme_set_style_metric(_s(widget), _s(style_class), int(metric), value)
+
+
+_lib.Rtheme_set_style_material.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+_lib.Rtheme_set_style_material.restype = None
+
+
+def Rtheme_set_style_material(widget, style_class, material):
+    """R_MATERIAL_DEFAULT removes the material of the style."""
+    _lib.Rtheme_set_style_material(_s(widget), _s(style_class), int(material))
+
+
+_lib.Rtheme_clear_styles.argtypes = []
+_lib.Rtheme_clear_styles.restype = None
+
+
+def Rtheme_clear_styles():
+    """Removes every style of the theme. Rtheme_apply and Rtheme_use do it too."""
+    _lib.Rtheme_clear_styles()
+
+
+_lib.Rtheme_load.argtypes = [ctypes.c_char_p]
+_lib.Rtheme_load.restype = ctypes.c_char_p
+
+
+def Rtheme_load(path):
+    """Reads a theme file and keeps the theme under its name (the Name
+    attribute, else the name of the file). It does not change the theme in
+    use unless a theme of that name is the one in use.
+    
+    The file is watched like the interface files (Rxml_set_live_reload):
+    saving it updates every widget that uses the theme.
+    Returns: The name of the theme, valid until Rshutdown, or NULL after
+    reporting an error."""
+    return _r(_lib.Rtheme_load(_s(path)))
+
+
+_lib.Rtheme_load_from_memory.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+_lib.Rtheme_load_from_memory.restype = ctypes.c_char_p
+
+
+def Rtheme_load_from_memory(xml):
+    """Same, from a text. `size` may be 0 for a null-terminated text."""
+    xml = _s(xml)
+    return _r(_lib.Rtheme_load_from_memory(xml, len(xml) if xml is not None else 0))
+
+
+_lib.Rtheme_use.argtypes = [ctypes.c_char_p]
+_lib.Rtheme_use.restype = ctypes.c_int
+
+
+def Rtheme_use(name):
+    """Makes a named theme the theme of the application: "Dark",
+    "Light", "GlassDark", "GlassLight", or a theme given by Rtheme_load.
+    Values changed with Rtheme_set_... are lost.
+    Returns: R_FALSE, after reporting an error, when no theme has that name."""
+    return _lib.Rtheme_use(_s(name))
+
+
+_lib.Rtheme_get_name.argtypes = []
+_lib.Rtheme_get_name.restype = ctypes.c_char_p
+
+
+def Rtheme_get_name():
+    """Name of the theme in use ("Dark" at start)."""
+    return _r(_lib.Rtheme_get_name())
+
+
+_lib.Rtheme_get_count.argtypes = []
+_lib.Rtheme_get_count.restype = ctypes.c_int
+
+
+def Rtheme_get_count():
+    """Number of named themes, the four built-in ones included."""
+    return _lib.Rtheme_get_count()
+
+
+_lib.Rtheme_get_name_at.argtypes = [ctypes.c_int]
+_lib.Rtheme_get_name_at.restype = ctypes.c_char_p
+
+
+def Rtheme_get_name_at(index):
+    """Name of the index-th one, or NULL."""
+    return _r(_lib.Rtheme_get_name_at(index))
+
+
+_lib.Rtheme_save.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+_lib.Rtheme_save.restype = ctypes.c_int
+
+
+def Rtheme_save(path, name):
+    """Writes the theme in use, with every change made since it was
+    applied, as a theme file.
+    name Name given to the theme in the file; NULL keeps the current one."""
+    return _lib.Rtheme_save(_s(path), _s(name))
+
+
 _lib.Rfont_create.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
 _lib.Rfont_create.restype = ctypes.c_uint32
 
@@ -2501,6 +2900,34 @@ def Rfont_set_fallback(font, fallback):
     """Font used for the characters missing from `font` (symbols, icons,
     other scripts). Fallbacks can be chained."""
     _lib.Rfont_set_fallback(font, fallback)
+
+
+_lib.Rfont_set_variant.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+_lib.Rfont_set_variant.restype = None
+
+
+def Rfont_set_variant(font, style, variant):
+    """Gives a font the font to use for one of its styles: the bold
+    file of the same family, its italic file. Formatted text (Markdown
+    labels, the Markdown of the text editor) uses them.
+    
+    A font that was given none still has the three styles: Raven draws
+    its glyphs thicker for bold and slanted for italic, keeping their
+    advances, so that text does not move when its style changes.
+    variant R_INVALID_ID goes back to the style Raven derives."""
+    _lib.Rfont_set_variant(font, int(style), variant)
+
+
+_lib.Rfont_get_variant.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rfont_get_variant.restype = ctypes.c_uint32
+
+
+def Rfont_get_variant(font, style):
+    """Returns: The font drawn for a style of `font`: the one given with
+    Rfont_set_variant, else the one Raven derives from it (made on first
+    use; it lives as long as `font` and cannot be deleted by itself).
+    Usable wherever a font is: Rlabel_set_font, Rdraw_text..."""
+    return _lib.Rfont_get_variant(font, int(style))
 
 
 _lib.Rfont_measure_text.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_char_p, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
@@ -2575,6 +3002,33 @@ def Rtexture_update(texture, rgba, width, height):
     """Replaces the pixels of a texture. The size may change. Use it to
     show frames produced on the CPU or read back from another renderer."""
     _lib.Rtexture_update(texture, rgba, width, height)
+
+
+_lib.Rimage_decode.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+_lib.Rimage_decode.restype = ctypes.c_void_p
+
+
+def Rimage_decode(data):
+    """Decodes an image file held in memory (PNG, JPEG, BMP, TGA) into
+    tightly packed RGBA8 pixels, without making a texture: for pictures
+    that arrive one after the other and go to Rtexture_update. Thread-safe,
+    so that the decoding can be done away from the UI thread.
+    Returns: The pixels, to release with Rpixels_free; NULL when the data
+    is not an image Raven can read."""
+    data = bytes(data) if data is not None else None
+    width_ = ctypes.c_int()
+    height_ = ctypes.c_int()
+    result = _lib.Rimage_decode(data, len(data) if data is not None else 0, ctypes.byref(width_), ctypes.byref(height_))
+    return (result, width_.value, height_.value)
+
+
+_lib.Rpixels_free.argtypes = [ctypes.c_void_p]
+_lib.Rpixels_free.restype = None
+
+
+def Rpixels_free(pixels):
+    """Releases pixels returned by Raven (Rimage_decode, Rwindow_capture). Thread-safe."""
+    _lib.Rpixels_free(pixels)
 
 
 _lib.Rtexture_is_ready.argtypes = [ctypes.c_uint32]
@@ -3094,6 +3548,14 @@ def Rwidget_get_user_handle(widget):
     return _lib.Rwidget_get_user_handle(widget)
 
 
+_lib.Rwidget_set_destroy_callback.argtypes = [ctypes.c_uint32, RWidgetDestroyCallback, ctypes.c_void_p]
+_lib.Rwidget_set_destroy_callback.restype = None
+
+
+def Rwidget_set_destroy_callback(widget, callback, user_data=None):
+    _lib.Rwidget_set_destroy_callback(widget, _callback(RWidgetDestroyCallback, _adapt_RWidgetDestroyCallback, callback), user_data)
+
+
 _lib.Rwidget_set_event_callback.argtypes = [ctypes.c_uint32, RWidgetEventCallback, ctypes.c_void_p]
 _lib.Rwidget_set_event_callback.restype = None
 
@@ -3199,6 +3661,22 @@ def Rwidget_clear_color(widget, role):
     _lib.Rwidget_clear_color(widget, int(role))
 
 
+_lib.Rwidget_get_color.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rwidget_get_color.restype = None
+
+
+def Rwidget_get_color(widget, role):
+    """The color the widget is drawn with for a role: its own, else
+    the one of the styles of its theme that apply to it, else the one of
+    its theme. What a custom widget should draw itself with."""
+    r_ = ctypes.c_float()
+    g_ = ctypes.c_float()
+    b_ = ctypes.c_float()
+    a_ = ctypes.c_float()
+    _lib.Rwidget_get_color(widget, int(role), ctypes.byref(r_), ctypes.byref(g_), ctypes.byref(b_), ctypes.byref(a_))
+    return (r_.value, g_.value, b_.value, a_.value)
+
+
 _lib.Rwidget_set_material.argtypes = [ctypes.c_uint32, ctypes.c_int]
 _lib.Rwidget_set_material.restype = None
 
@@ -3239,6 +3717,83 @@ def Rwidget_clear_metric(widget, metric):
     _lib.Rwidget_clear_metric(widget, int(metric))
 
 
+_lib.Rwidget_get_metric.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rwidget_get_metric.restype = ctypes.c_float
+
+
+def Rwidget_get_metric(widget, metric):
+    """Returns: The metric the widget uses: its own, else the one of a style, else the one of its theme."""
+    return _lib.Rwidget_get_metric(widget, int(metric))
+
+
+_lib.Rwidget_set_class.argtypes = [ctypes.c_uint32, ctypes.c_char_p]
+_lib.Rwidget_set_class.restype = None
+
+
+def Rwidget_set_class(widget, classes):
+    """Classes of the widget, separated by spaces ("danger large"):
+    the styles of the theme made for these classes apply to it
+    (Rtheme_set_style_color, <Style Class="danger" .../> in a theme file).
+    In XML: Class="...". NULL or "" removes them."""
+    _lib.Rwidget_set_class(widget, _s(classes))
+
+
+_lib.Rwidget_get_class.argtypes = [ctypes.c_uint32]
+_lib.Rwidget_get_class.restype = ctypes.c_char_p
+
+
+def Rwidget_get_class(widget):
+    """Returns: The classes, "" when it has none. Valid until they change."""
+    return _r(_lib.Rwidget_get_class(widget))
+
+
+_lib.Rwidget_add_class.argtypes = [ctypes.c_uint32, ctypes.c_char_p]
+_lib.Rwidget_add_class.restype = None
+
+
+def Rwidget_add_class(widget, style_class):
+    _lib.Rwidget_add_class(widget, _s(style_class))
+
+
+_lib.Rwidget_remove_class.argtypes = [ctypes.c_uint32, ctypes.c_char_p]
+_lib.Rwidget_remove_class.restype = None
+
+
+def Rwidget_remove_class(widget, style_class):
+    _lib.Rwidget_remove_class(widget, _s(style_class))
+
+
+_lib.Rwidget_has_class.argtypes = [ctypes.c_uint32, ctypes.c_char_p]
+_lib.Rwidget_has_class.restype = ctypes.c_int
+
+
+def Rwidget_has_class(widget, style_class):
+    return _lib.Rwidget_has_class(widget, _s(style_class))
+
+
+_lib.Rwidget_set_theme.argtypes = [ctypes.c_uint32, ctypes.c_char_p]
+_lib.Rwidget_set_theme.restype = ctypes.c_int
+
+
+def Rwidget_set_theme(widget, name):
+    """Gives the widget and everything inside it a theme of their own,
+    by name ("Dark", "GlassLight", or a theme of Rtheme_load): a dark side
+    bar in a light window, a preview of another theme. Menus and lists
+    opened from inside follow. In XML: Theme="...".
+    name NULL or "" follows the parent (the application theme) again.
+    Returns: R_FALSE, after reporting an error, when no theme has that name."""
+    return _lib.Rwidget_set_theme(widget, _s(name))
+
+
+_lib.Rwidget_get_theme.argtypes = [ctypes.c_uint32]
+_lib.Rwidget_get_theme.restype = ctypes.c_char_p
+
+
+def Rwidget_get_theme(widget):
+    """Returns: Name of the theme the widget is drawn with."""
+    return _r(_lib.Rwidget_get_theme(widget))
+
+
 _lib.Rpanel_set_spacing.argtypes = [ctypes.c_uint32, ctypes.c_float]
 _lib.Rpanel_set_spacing.restype = None
 
@@ -3246,6 +3801,14 @@ _lib.Rpanel_set_spacing.restype = None
 def Rpanel_set_spacing(panel, spacing):
     """Gap inserted between neighbouring children."""
     _lib.Rpanel_set_spacing(panel, spacing)
+
+
+_lib.Rpanel_get_spacing.argtypes = [ctypes.c_uint32]
+_lib.Rpanel_get_spacing.restype = ctypes.c_float
+
+
+def Rpanel_get_spacing(panel):
+    return _lib.Rpanel_get_spacing(panel)
 
 
 _lib.Rgrid_set_column_fill.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_float]
@@ -3429,6 +3992,124 @@ def Rsplitter_set_min_pane_size(splitter, size):
     _lib.Rsplitter_set_min_pane_size(splitter, size)
 
 
+_lib.Rbackground_blur_create.argtypes = []
+_lib.Rbackground_blur_create.restype = ctypes.c_uint32
+
+
+def Rbackground_blur_create():
+    """Creates a panel that shows what is behind it out of focus,
+    with one child over it. In XML:
+    
+      <BackgroundBlur Style="Frosted" Radius="24" CornerRadius="18" Padding="16">
+          <Label>Over a blurred view of the window</Label>
+      </BackgroundBlur>
+    
+    It works in any theme and with any material: it is not the glass of
+    the glass themes (which bends and reflects), but the looks of
+    RBlurStyle. Unlike the opacity of a widget, it does not let what is
+    behind show sharp."""
+    return _lib.Rbackground_blur_create()
+
+
+_lib.Rbackground_blur_set_style.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rbackground_blur_set_style.restype = None
+
+
+def Rbackground_blur_set_style(blur, style):
+    _lib.Rbackground_blur_set_style(blur, int(style))
+
+
+_lib.Rbackground_blur_get_style.argtypes = [ctypes.c_uint32]
+_lib.Rbackground_blur_get_style.restype = ctypes.c_int
+
+
+def Rbackground_blur_get_style(blur):
+    return _e(RBlurStyle, _lib.Rbackground_blur_get_style(blur))
+
+
+_lib.Rbackground_blur_set_radius.argtypes = [ctypes.c_uint32, ctypes.c_float]
+_lib.Rbackground_blur_set_radius.restype = None
+
+
+def Rbackground_blur_set_radius(blur, radius):
+    """How far what is behind goes out of focus, in logical units:
+    4 softens, 20 hides the details, 60 leaves only colors. A negative
+    value (the default) uses R_METRIC_BLUR_RADIUS of the theme."""
+    _lib.Rbackground_blur_set_radius(blur, radius)
+
+
+_lib.Rbackground_blur_get_radius.argtypes = [ctypes.c_uint32]
+_lib.Rbackground_blur_get_radius.restype = ctypes.c_float
+
+
+def Rbackground_blur_get_radius(blur):
+    return _lib.Rbackground_blur_get_radius(blur)
+
+
+_lib.Rbackground_blur_set_tint.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rbackground_blur_set_tint.restype = None
+
+
+def Rbackground_blur_set_tint(blur, r, g, b, a):
+    """Color laid over the blur; its alpha is how much of it. Without
+    one, R_BLUR_PLAIN has none and the other styles take theirs from the
+    theme (R_COLOR_PANEL)."""
+    _lib.Rbackground_blur_set_tint(blur, r, g, b, a)
+
+
+_lib.Rbackground_blur_clear_tint.argtypes = [ctypes.c_uint32]
+_lib.Rbackground_blur_clear_tint.restype = None
+
+
+def Rbackground_blur_clear_tint(blur):
+    """Removes the tint given with Rbackground_blur_set_tint."""
+    _lib.Rbackground_blur_clear_tint(blur)
+
+
+_lib.Rbackground_blur_set_saturation.argtypes = [ctypes.c_uint32, ctypes.c_float]
+_lib.Rbackground_blur_set_saturation.restype = None
+
+
+def Rbackground_blur_set_saturation(blur, saturation):
+    """Saturation of what is seen through: 1 = as it is, 0 = gray, 1.5 = vivid. Negative = the one of the style."""
+    _lib.Rbackground_blur_set_saturation(blur, saturation)
+
+
+_lib.Rbackground_blur_set_grain.argtypes = [ctypes.c_uint32, ctypes.c_float]
+_lib.Rbackground_blur_set_grain.restype = None
+
+
+def Rbackground_blur_set_grain(blur, grain):
+    """Fine grain over the blur, 0 = none .. 1. Negative = the one of the style."""
+    _lib.Rbackground_blur_set_grain(blur, grain)
+
+
+_lib.Rbackground_blur_set_corner_radius.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rbackground_blur_set_corner_radius.restype = None
+
+
+def Rbackground_blur_set_corner_radius(blur, top_left, top_right, bottom_right, bottom_left):
+    _lib.Rbackground_blur_set_corner_radius(blur, top_left, top_right, bottom_right, bottom_left)
+
+
+_lib.Rbackground_blur_set_padding.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rbackground_blur_set_padding.restype = None
+
+
+def Rbackground_blur_set_padding(blur, left, top, right, bottom):
+    """Space between the edge and the child."""
+    _lib.Rbackground_blur_set_padding(blur, left, top, right, bottom)
+
+
+_lib.Rbackground_blur_set_shadow.argtypes = [ctypes.c_uint32, ctypes.c_float]
+_lib.Rbackground_blur_set_shadow.restype = None
+
+
+def Rbackground_blur_set_shadow(blur, shadow_blur):
+    """Soft shadow under the panel; blur 0 = none (default)."""
+    _lib.Rbackground_blur_set_shadow(blur, shadow_blur)
+
+
 _lib.Rswitcher_set_index.argtypes = [ctypes.c_uint32, ctypes.c_int]
 _lib.Rswitcher_set_index.restype = None
 
@@ -3579,6 +4260,54 @@ _lib.Rlabel_set_color.restype = None
 def Rlabel_set_color(label, r, g, b, a):
     """Text color (R_COLOR_TEXT of this widget)."""
     _lib.Rlabel_set_color(label, r, g, b, a)
+
+
+_lib.Rlabel_set_markdown.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rlabel_set_markdown.restype = None
+
+
+def Rlabel_set_markdown(label, enabled):
+    """R_TRUE reads the text as Markdown and shows it formatted
+    (Markdown="true" in XML):
+    
+      # titles, **strong**, *emphasis*, `code`, ~~struck~~, [links](url),
+      lists and lists in lists, - [x] task lists, > quotes, --- rules,
+      | tables |, images alone on their line, and ``` blocks of code with
+      the colors of their language (```c, ```python...: the languages of
+      the text editor, raven_text_editor.h).
+    
+    The text wraps on the width of the label unless Rlabel_set_wrap said
+    otherwise; put the label in a scroll box for a long document. Strong
+    and emphasized text use the bold and italic of the font
+    (Rfont_set_variant), which Raven derives from the font itself when it
+    was given none. The colors come from the theme: R_COLOR_LINK,
+    R_COLOR_CODE, R_COLOR_SEPARATOR, R_COLOR_ACCENT."""
+    _lib.Rlabel_set_markdown(label, enabled)
+
+
+_lib.Rlabel_get_markdown.argtypes = [ctypes.c_uint32]
+_lib.Rlabel_get_markdown.restype = ctypes.c_int
+
+
+def Rlabel_get_markdown(label):
+    return _lib.Rlabel_get_markdown(label)
+
+
+_lib.Rlabel_set_link_callback.argtypes = [ctypes.c_uint32, RLabelLinkCallback, ctypes.c_void_p]
+_lib.Rlabel_set_link_callback.restype = None
+
+
+def Rlabel_set_link_callback(label, callback, user_data=None):
+    _lib.Rlabel_set_link_callback(label, _callback(RLabelLinkCallback, _adapt_RLabelLinkCallback, callback), user_data)
+
+
+_lib.Rlabel_get_plain_text.argtypes = [ctypes.c_uint32]
+_lib.Rlabel_get_plain_text.restype = ctypes.c_char_p
+
+
+def Rlabel_get_plain_text(label):
+    """The text of a Markdown label without its marks, as a reader sees it. Valid until the next call."""
+    return _r(_lib.Rlabel_get_plain_text(label))
 
 
 _lib.Rbutton_create.argtypes = [ctypes.c_char_p]
@@ -4626,6 +5355,28 @@ def Rtext_editor_get_language(editor):
     return _r(_lib.Rtext_editor_get_language(editor))
 
 
+_lib.Rtext_editor_set_markdown.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtext_editor_set_markdown.restype = None
+
+
+def Rtext_editor_set_markdown(editor, enabled):
+    """R_TRUE makes the editor an editor of Markdown (the "Markdown"
+    language; Markdown="true" in XML): the text stays as it is written,
+    and what it formats shows while typing, strong text in bold,
+    emphasized text in italic, titles in bold, code, links and marks in
+    their colors. A label with Rlabel_set_markdown shows the same text
+    formatted. R_FALSE removes the language."""
+    _lib.Rtext_editor_set_markdown(editor, enabled)
+
+
+_lib.Rtext_editor_get_markdown.argtypes = [ctypes.c_uint32]
+_lib.Rtext_editor_get_markdown.restype = ctypes.c_int
+
+
+def Rtext_editor_get_markdown(editor):
+    return _lib.Rtext_editor_get_markdown(editor)
+
+
 _lib.Rtext_editor_get_token.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int]
 _lib.Rtext_editor_get_token.restype = ctypes.c_int
 
@@ -4719,6 +5470,39 @@ _lib.Rtext_editor_get_marker_count.restype = ctypes.c_int
 
 def Rtext_editor_get_marker_count(editor):
     return _lib.Rtext_editor_get_marker_count(editor)
+
+
+_lib.Rtheme_set_token_color.argtypes = [ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rtheme_set_token_color.restype = None
+
+
+def Rtheme_set_token_color(token, r, g, b, a):
+    """Color of a kind of token in the theme in use, instead of the
+    one Raven picks for dark and for light themes. Theme files set them
+    with <Syntax Keyword="#FF7AB2" String="..."/>."""
+    _lib.Rtheme_set_token_color(int(token), r, g, b, a)
+
+
+_lib.Rtheme_get_token_color.argtypes = [ctypes.c_int, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rtheme_get_token_color.restype = None
+
+
+def Rtheme_get_token_color(token):
+    r_ = ctypes.c_float()
+    g_ = ctypes.c_float()
+    b_ = ctypes.c_float()
+    a_ = ctypes.c_float()
+    _lib.Rtheme_get_token_color(int(token), ctypes.byref(r_), ctypes.byref(g_), ctypes.byref(b_), ctypes.byref(a_))
+    return (r_.value, g_.value, b_.value, a_.value)
+
+
+_lib.Rtheme_clear_token_colors.argtypes = []
+_lib.Rtheme_clear_token_colors.restype = None
+
+
+def Rtheme_clear_token_colors():
+    """Back to the colors Raven picks."""
+    _lib.Rtheme_clear_token_colors()
 
 
 _lib.Rtext_editor_set_changed_callback.argtypes = [ctypes.c_uint32, RTextEditorChangedCallback, ctypes.c_void_p]
@@ -5000,6 +5784,1124 @@ _lib.Rwindow_get_island.restype = ctypes.c_uint32
 
 def Rwindow_get_island(window):
     return _lib.Rwindow_get_island(window)
+
+
+_lib.Rcolor_picker_create.argtypes = []
+_lib.Rcolor_picker_create.restype = ctypes.c_uint32
+
+
+def Rcolor_picker_create():
+    return _lib.Rcolor_picker_create()
+
+
+_lib.Rcolor_picker_set_color.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rcolor_picker_set_color.restype = None
+
+
+def Rcolor_picker_set_color(picker, r, g, b, a):
+    """Sets the color (0..1 each). The callback is not called."""
+    _lib.Rcolor_picker_set_color(picker, r, g, b, a)
+
+
+_lib.Rcolor_picker_get_color.argtypes = [ctypes.c_uint32, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rcolor_picker_get_color.restype = None
+
+
+def Rcolor_picker_get_color(picker):
+    r_ = ctypes.c_float()
+    g_ = ctypes.c_float()
+    b_ = ctypes.c_float()
+    a_ = ctypes.c_float()
+    _lib.Rcolor_picker_get_color(picker, ctypes.byref(r_), ctypes.byref(g_), ctypes.byref(b_), ctypes.byref(a_))
+    return (r_.value, g_.value, b_.value, a_.value)
+
+
+_lib.Rcolor_picker_set_hsv.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rcolor_picker_set_hsv.restype = None
+
+
+def Rcolor_picker_set_hsv(picker, hue, saturation, value):
+    """The same color as hue (0..360), saturation and value (0..1).
+    The picker remembers the hue of a gray and the saturation of black,
+    which red, green and blue cannot tell."""
+    _lib.Rcolor_picker_set_hsv(picker, hue, saturation, value)
+
+
+_lib.Rcolor_picker_get_hsv.argtypes = [ctypes.c_uint32, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rcolor_picker_get_hsv.restype = None
+
+
+def Rcolor_picker_get_hsv(picker):
+    hue_ = ctypes.c_float()
+    saturation_ = ctypes.c_float()
+    value_ = ctypes.c_float()
+    _lib.Rcolor_picker_get_hsv(picker, ctypes.byref(hue_), ctypes.byref(saturation_), ctypes.byref(value_))
+    return (hue_.value, saturation_.value, value_.value)
+
+
+_lib.Rcolor_picker_set_hex.argtypes = [ctypes.c_uint32, ctypes.c_char_p]
+_lib.Rcolor_picker_set_hex.restype = ctypes.c_int
+
+
+def Rcolor_picker_set_hex(picker, text):
+    """Sets the color from text: "#RGB", "#RRGGBB", "#RRGGBBAA" (the
+    '#' may be left out) or one of the color names of the XML attributes.
+    A code without opacity leaves the opacity as it is.
+    Returns: R_FALSE when the text is not a color (the color is unchanged)."""
+    return _lib.Rcolor_picker_set_hex(picker, _s(text))
+
+
+_lib.Rcolor_picker_get_hex.argtypes = [ctypes.c_uint32]
+_lib.Rcolor_picker_get_hex.restype = ctypes.c_char_p
+
+
+def Rcolor_picker_get_hex(picker):
+    """Returns: "#RRGGBB", or "#RRGGBBAA" when the opacity is shown and not full. Valid until the color changes."""
+    return _r(_lib.Rcolor_picker_get_hex(picker))
+
+
+_lib.Rcolor_picker_set_alpha_enabled.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rcolor_picker_set_alpha_enabled.restype = None
+
+
+def Rcolor_picker_set_alpha_enabled(picker, enabled):
+    """R_TRUE (default) shows the opacity strip and the fourth number. R_FALSE: colors are opaque."""
+    _lib.Rcolor_picker_set_alpha_enabled(picker, enabled)
+
+
+_lib.Rcolor_picker_set_previous_color.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rcolor_picker_set_previous_color.restype = None
+
+
+def Rcolor_picker_set_previous_color(picker, r, g, b, a):
+    """The color shown next to the current one, to compare with what
+    was there before: clicking it comes back to it. Rcolor_picker_set_color
+    does not change it; a popup picker takes it when it opens."""
+    _lib.Rcolor_picker_set_previous_color(picker, r, g, b, a)
+
+
+_lib.Rcolor_picker_add_swatch.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rcolor_picker_add_swatch.restype = None
+
+
+def Rcolor_picker_add_swatch(picker, r, g, b, a):
+    """Adds a color to the row of swatches: one click takes it."""
+    _lib.Rcolor_picker_add_swatch(picker, r, g, b, a)
+
+
+_lib.Rcolor_picker_clear_swatches.argtypes = [ctypes.c_uint32]
+_lib.Rcolor_picker_clear_swatches.restype = None
+
+
+def Rcolor_picker_clear_swatches(picker):
+    _lib.Rcolor_picker_clear_swatches(picker)
+
+
+_lib.Rcolor_picker_get_swatch_count.argtypes = [ctypes.c_uint32]
+_lib.Rcolor_picker_get_swatch_count.restype = ctypes.c_int
+
+
+def Rcolor_picker_get_swatch_count(picker):
+    return _lib.Rcolor_picker_get_swatch_count(picker)
+
+
+_lib.Rcolor_picker_set_popup.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rcolor_picker_set_popup.restype = None
+
+
+def Rcolor_picker_set_popup(picker, popup):
+    """R_TRUE turns the widget into a swatch that opens the picker in a popup."""
+    _lib.Rcolor_picker_set_popup(picker, popup)
+
+
+_lib.Rcolor_picker_set_compact.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rcolor_picker_set_compact.restype = None
+
+
+def Rcolor_picker_set_compact(picker, compact):
+    """R_TRUE hides the code and the numbers: only the square, the strips and the swatches."""
+    _lib.Rcolor_picker_set_compact(picker, compact)
+
+
+_lib.Rcolor_picker_set_changed_callback.argtypes = [ctypes.c_uint32, RColorChangedCallback, ctypes.c_void_p]
+_lib.Rcolor_picker_set_changed_callback.restype = None
+
+
+def Rcolor_picker_set_changed_callback(picker, callback, user_data=None):
+    _lib.Rcolor_picker_set_changed_callback(picker, _callback(RColorChangedCallback, _adapt_RColorChangedCallback, callback), user_data)
+
+
+_lib.Rcolor_rgb_to_hsv.argtypes = [ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rcolor_rgb_to_hsv.restype = None
+
+
+def Rcolor_rgb_to_hsv(r, g, b):
+    """Red, green, blue (0..1) to hue (0..360), saturation, value (0..1)."""
+    hue_ = ctypes.c_float()
+    saturation_ = ctypes.c_float()
+    value_ = ctypes.c_float()
+    _lib.Rcolor_rgb_to_hsv(r, g, b, ctypes.byref(hue_), ctypes.byref(saturation_), ctypes.byref(value_))
+    return (hue_.value, saturation_.value, value_.value)
+
+
+_lib.Rcolor_hsv_to_rgb.argtypes = [ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rcolor_hsv_to_rgb.restype = None
+
+
+def Rcolor_hsv_to_rgb(hue, saturation, value):
+    r_ = ctypes.c_float()
+    g_ = ctypes.c_float()
+    b_ = ctypes.c_float()
+    _lib.Rcolor_hsv_to_rgb(hue, saturation, value, ctypes.byref(r_), ctypes.byref(g_), ctypes.byref(b_))
+    return (r_.value, g_.value, b_.value)
+
+
+_lib.Rtimeline_create.argtypes = []
+_lib.Rtimeline_create.restype = ctypes.c_uint32
+
+
+def Rtimeline_create():
+    return _lib.Rtimeline_create()
+
+
+_lib.Rtimeline_set_duration.argtypes = [ctypes.c_uint32, ctypes.c_double]
+_lib.Rtimeline_set_duration.restype = None
+
+
+def Rtimeline_set_duration(timeline, seconds):
+    """Length of the sequence. The view and the playhead stay within 0 .. duration."""
+    _lib.Rtimeline_set_duration(timeline, seconds)
+
+
+_lib.Rtimeline_get_duration.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_get_duration.restype = ctypes.c_double
+
+
+def Rtimeline_get_duration(timeline):
+    return _lib.Rtimeline_get_duration(timeline)
+
+
+_lib.Rtimeline_set_time.argtypes = [ctypes.c_uint32, ctypes.c_double]
+_lib.Rtimeline_set_time.restype = None
+
+
+def Rtimeline_set_time(timeline, seconds):
+    """Moves the playhead. The time callback is not called."""
+    _lib.Rtimeline_set_time(timeline, seconds)
+
+
+_lib.Rtimeline_get_time.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_get_time.restype = ctypes.c_double
+
+
+def Rtimeline_get_time(timeline):
+    return _lib.Rtimeline_get_time(timeline)
+
+
+_lib.Rtimeline_set_frame_rate.argtypes = [ctypes.c_uint32, ctypes.c_double]
+_lib.Rtimeline_set_frame_rate.restype = None
+
+
+def Rtimeline_set_frame_rate(timeline, frames_per_second):
+    """Frames per second. With a frame rate the ruler counts in
+    frames ("2:12" is second 2, frame 12) and everything snaps to frames;
+    0 (default) counts in seconds and snaps to the marks of the ruler."""
+    _lib.Rtimeline_set_frame_rate(timeline, frames_per_second)
+
+
+_lib.Rtimeline_get_frame_rate.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_get_frame_rate.restype = ctypes.c_double
+
+
+def Rtimeline_get_frame_rate(timeline):
+    return _lib.Rtimeline_get_frame_rate(timeline)
+
+
+_lib.Rtimeline_set_snapping.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_set_snapping.restype = None
+
+
+def Rtimeline_set_snapping(timeline, enabled):
+    """R_FALSE lets items be placed anywhere (holding Alt while dragging does it for one move)."""
+    _lib.Rtimeline_set_snapping(timeline, enabled)
+
+
+_lib.Rtimeline_set_view.argtypes = [ctypes.c_uint32, ctypes.c_double, ctypes.c_double]
+_lib.Rtimeline_set_view.restype = None
+
+
+def Rtimeline_set_view(timeline, start, end):
+    """The part of the sequence that is shown. Zooming is showing less."""
+    _lib.Rtimeline_set_view(timeline, start, end)
+
+
+_lib.Rtimeline_get_view.argtypes = [ctypes.c_uint32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+_lib.Rtimeline_get_view.restype = None
+
+
+def Rtimeline_get_view(timeline):
+    start_ = ctypes.c_double()
+    end_ = ctypes.c_double()
+    _lib.Rtimeline_get_view(timeline, ctypes.byref(start_), ctypes.byref(end_))
+    return (start_.value, end_.value)
+
+
+_lib.Rtimeline_set_playing.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_set_playing.restype = None
+
+
+def Rtimeline_set_playing(timeline, playing):
+    """Makes the playhead run by itself, at the speed of the clock,
+    calling the time callback at each frame; at the end it stops, or
+    starts again with Rtimeline_set_loop."""
+    _lib.Rtimeline_set_playing(timeline, playing)
+
+
+_lib.Rtimeline_is_playing.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_is_playing.restype = ctypes.c_int
+
+
+def Rtimeline_is_playing(timeline):
+    return _lib.Rtimeline_is_playing(timeline)
+
+
+_lib.Rtimeline_set_loop.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_set_loop.restype = None
+
+
+def Rtimeline_set_loop(timeline, loop):
+    _lib.Rtimeline_set_loop(timeline, loop)
+
+
+_lib.Rtimeline_add_track.argtypes = [ctypes.c_uint32, ctypes.c_char_p]
+_lib.Rtimeline_add_track.restype = ctypes.c_int
+
+
+def Rtimeline_add_track(timeline, name):
+    """Returns: The track, or 0. Tracks are shown in the order they were added."""
+    return _lib.Rtimeline_add_track(timeline, _s(name))
+
+
+_lib.Rtimeline_remove_track.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_remove_track.restype = None
+
+
+def Rtimeline_remove_track(timeline, track):
+    """Removes a track and everything on it."""
+    _lib.Rtimeline_remove_track(timeline, track)
+
+
+_lib.Rtimeline_get_track_count.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_get_track_count.restype = ctypes.c_int
+
+
+def Rtimeline_get_track_count(timeline):
+    return _lib.Rtimeline_get_track_count(timeline)
+
+
+_lib.Rtimeline_get_track.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_track.restype = ctypes.c_int
+
+
+def Rtimeline_get_track(timeline, index):
+    """Returns: The index-th track from the top, or 0."""
+    return _lib.Rtimeline_get_track(timeline, index)
+
+
+_lib.Rtimeline_set_track_name.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_char_p]
+_lib.Rtimeline_set_track_name.restype = None
+
+
+def Rtimeline_set_track_name(timeline, track, name):
+    _lib.Rtimeline_set_track_name(timeline, track, _s(name))
+
+
+_lib.Rtimeline_get_track_name.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_track_name.restype = ctypes.c_char_p
+
+
+def Rtimeline_get_track_name(timeline, track):
+    return _r(_lib.Rtimeline_get_track_name(timeline, track))
+
+
+_lib.Rtimeline_set_track_color.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rtimeline_set_track_color.restype = None
+
+
+def Rtimeline_set_track_color(timeline, track, r, g, b):
+    """Color of the clips and keys of the track that have none of their own."""
+    _lib.Rtimeline_set_track_color(timeline, track, r, g, b)
+
+
+_lib.Rtimeline_set_track_height.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_float]
+_lib.Rtimeline_set_track_height.restype = None
+
+
+def Rtimeline_set_track_height(timeline, track, height):
+    """Height of the track in logical units; 0 = the default."""
+    _lib.Rtimeline_set_track_height(timeline, track, height)
+
+
+_lib.Rtimeline_set_track_locked.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int]
+_lib.Rtimeline_set_track_locked.restype = None
+
+
+def Rtimeline_set_track_locked(timeline, track, locked):
+    """A locked track shows its items but does not let the user change them."""
+    _lib.Rtimeline_set_track_locked(timeline, track, locked)
+
+
+_lib.Rtimeline_set_track_muted.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int]
+_lib.Rtimeline_set_track_muted.restype = None
+
+
+def Rtimeline_set_track_muted(timeline, track, muted):
+    """A muted track is drawn dimmed; what muting means is up to the application."""
+    _lib.Rtimeline_set_track_muted(timeline, track, muted)
+
+
+_lib.Rtimeline_is_track_muted.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_is_track_muted.restype = ctypes.c_int
+
+
+def Rtimeline_is_track_muted(timeline, track):
+    return _lib.Rtimeline_is_track_muted(timeline, track)
+
+
+_lib.Rtimeline_add_clip.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_double, ctypes.c_double, ctypes.c_char_p]
+_lib.Rtimeline_add_clip.restype = ctypes.c_int
+
+
+def Rtimeline_add_clip(timeline, track, start, length, label):
+    """Returns: The clip, or 0 when the track does not exist."""
+    return _lib.Rtimeline_add_clip(timeline, track, start, length, _s(label))
+
+
+_lib.Rtimeline_add_key.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_double]
+_lib.Rtimeline_add_key.restype = ctypes.c_int
+
+
+def Rtimeline_add_key(timeline, track, time):
+    """Returns: The key, or 0."""
+    return _lib.Rtimeline_add_key(timeline, track, time)
+
+
+_lib.Rtimeline_add_marker.argtypes = [ctypes.c_uint32, ctypes.c_double, ctypes.c_char_p]
+_lib.Rtimeline_add_marker.restype = ctypes.c_int
+
+
+def Rtimeline_add_marker(timeline, time, label):
+    """A named moment of the whole sequence, shown on the ruler and across the tracks."""
+    return _lib.Rtimeline_add_marker(timeline, time, _s(label))
+
+
+_lib.Rtimeline_remove_item.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_remove_item.restype = None
+
+
+def Rtimeline_remove_item(timeline, item):
+    _lib.Rtimeline_remove_item(timeline, item)
+
+
+_lib.Rtimeline_clear.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_clear.restype = None
+
+
+def Rtimeline_clear(timeline):
+    """Removes every track, clip, key and marker."""
+    _lib.Rtimeline_clear(timeline)
+
+
+_lib.Rtimeline_get_item_type.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_item_type.restype = ctypes.c_int
+
+
+def Rtimeline_get_item_type(timeline, item):
+    return _e(RTimelineItem, _lib.Rtimeline_get_item_type(timeline, item))
+
+
+_lib.Rtimeline_get_item_track.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_item_track.restype = ctypes.c_int
+
+
+def Rtimeline_get_item_track(timeline, item):
+    """Returns: The track of a clip or of a key; 0 for a marker."""
+    return _lib.Rtimeline_get_item_track(timeline, item)
+
+
+_lib.Rtimeline_get_item_start.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_item_start.restype = ctypes.c_double
+
+
+def Rtimeline_get_item_start(timeline, item):
+    return _lib.Rtimeline_get_item_start(timeline, item)
+
+
+_lib.Rtimeline_get_item_length.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_item_length.restype = ctypes.c_double
+
+
+def Rtimeline_get_item_length(timeline, item):
+    """Returns: The length of a clip; 0 for a key or a marker."""
+    return _lib.Rtimeline_get_item_length(timeline, item)
+
+
+_lib.Rtimeline_set_item.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_double]
+_lib.Rtimeline_set_item.restype = None
+
+
+def Rtimeline_set_item(timeline, item, track, start, length):
+    """Moves an item: to another track (0 = keep), another start, another length (clips; negative = keep)."""
+    _lib.Rtimeline_set_item(timeline, item, track, start, length)
+
+
+_lib.Rtimeline_set_item_label.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_char_p]
+_lib.Rtimeline_set_item_label.restype = None
+
+
+def Rtimeline_set_item_label(timeline, item, label):
+    _lib.Rtimeline_set_item_label(timeline, item, _s(label))
+
+
+_lib.Rtimeline_get_item_label.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_item_label.restype = ctypes.c_char_p
+
+
+def Rtimeline_get_item_label(timeline, item):
+    return _r(_lib.Rtimeline_get_item_label(timeline, item))
+
+
+_lib.Rtimeline_set_item_color.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rtimeline_set_item_color.restype = None
+
+
+def Rtimeline_set_item_color(timeline, item, r, g, b):
+    _lib.Rtimeline_set_item_color(timeline, item, r, g, b)
+
+
+_lib.Rtimeline_get_item_count.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_get_item_count.restype = ctypes.c_int
+
+
+def Rtimeline_get_item_count(timeline):
+    return _lib.Rtimeline_get_item_count(timeline)
+
+
+_lib.Rtimeline_get_item.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_item.restype = ctypes.c_int
+
+
+def Rtimeline_get_item(timeline, index):
+    """Returns: The index-th item, in the order they were added, or 0."""
+    return _lib.Rtimeline_get_item(timeline, index)
+
+
+_lib.Rtimeline_select.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int]
+_lib.Rtimeline_select.restype = None
+
+
+def Rtimeline_select(timeline, item, add):
+    """Selects an item, alone or (add) with the ones already selected."""
+    _lib.Rtimeline_select(timeline, item, add)
+
+
+_lib.Rtimeline_clear_selection.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_clear_selection.restype = None
+
+
+def Rtimeline_clear_selection(timeline):
+    _lib.Rtimeline_clear_selection(timeline)
+
+
+_lib.Rtimeline_is_selected.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_is_selected.restype = ctypes.c_int
+
+
+def Rtimeline_is_selected(timeline, item):
+    return _lib.Rtimeline_is_selected(timeline, item)
+
+
+_lib.Rtimeline_get_selection_count.argtypes = [ctypes.c_uint32]
+_lib.Rtimeline_get_selection_count.restype = ctypes.c_int
+
+
+def Rtimeline_get_selection_count(timeline):
+    return _lib.Rtimeline_get_selection_count(timeline)
+
+
+_lib.Rtimeline_get_selected.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rtimeline_get_selected.restype = ctypes.c_int
+
+
+def Rtimeline_get_selected(timeline, index):
+    return _lib.Rtimeline_get_selected(timeline, index)
+
+
+_lib.Rtimeline_set_time_callback.argtypes = [ctypes.c_uint32, RTimelineTimeCallback, ctypes.c_void_p]
+_lib.Rtimeline_set_time_callback.restype = None
+
+
+def Rtimeline_set_time_callback(timeline, callback, user_data=None):
+    _lib.Rtimeline_set_time_callback(timeline, _callback(RTimelineTimeCallback, _adapt_RTimelineTimeCallback, callback), user_data)
+
+
+_lib.Rtimeline_set_changed_callback.argtypes = [ctypes.c_uint32, RTimelineItemCallback, ctypes.c_void_p]
+_lib.Rtimeline_set_changed_callback.restype = None
+
+
+def Rtimeline_set_changed_callback(timeline, callback, user_data=None):
+    """Called for each item the user moved, stretched or retimed, as
+    it happens. The action of the widget (OnChanged in XML) fires once
+    per gesture, when the button is released."""
+    _lib.Rtimeline_set_changed_callback(timeline, _callback(RTimelineItemCallback, _adapt_RTimelineItemCallback, callback), user_data)
+
+
+_lib.Rtimeline_set_selection_callback.argtypes = [ctypes.c_uint32, RTimelineItemCallback, ctypes.c_void_p]
+_lib.Rtimeline_set_selection_callback.restype = None
+
+
+def Rtimeline_set_selection_callback(timeline, callback, user_data=None):
+    """Called when the selection changed; `item` is the item just clicked, or 0."""
+    _lib.Rtimeline_set_selection_callback(timeline, _callback(RTimelineItemCallback, _adapt_RTimelineItemCallback, callback), user_data)
+
+
+_lib.Rtimeline_set_activated_callback.argtypes = [ctypes.c_uint32, RTimelineItemCallback, ctypes.c_void_p]
+_lib.Rtimeline_set_activated_callback.restype = None
+
+
+def Rtimeline_set_activated_callback(timeline, callback, user_data=None):
+    """Called when an item is double-clicked."""
+    _lib.Rtimeline_set_activated_callback(timeline, _callback(RTimelineItemCallback, _adapt_RTimelineItemCallback, callback), user_data)
+
+
+_lib.Rtimeline_set_removed_callback.argtypes = [ctypes.c_uint32, RTimelineItemCallback, ctypes.c_void_p]
+_lib.Rtimeline_set_removed_callback.restype = None
+
+
+def Rtimeline_set_removed_callback(timeline, callback, user_data=None):
+    """Called when the user deletes an item (the Delete key), before
+    it is removed: its values can still be read. Without this callback the
+    Delete key does nothing: the application decides what can be deleted."""
+    _lib.Rtimeline_set_removed_callback(timeline, _callback(RTimelineItemCallback, _adapt_RTimelineItemCallback, callback), user_data)
+
+
+_lib.Rnode_graph_create.argtypes = []
+_lib.Rnode_graph_create.restype = ctypes.c_uint32
+
+
+def Rnode_graph_create():
+    return _lib.Rnode_graph_create()
+
+
+_lib.Rnode_graph_add_node.argtypes = [ctypes.c_uint32, ctypes.c_char_p, ctypes.c_float, ctypes.c_float]
+_lib.Rnode_graph_add_node.restype = ctypes.c_int
+
+
+def Rnode_graph_add_node(graph, title, x, y):
+    """x,y Top-left corner of the node, in the units of the canvas."""
+    return _lib.Rnode_graph_add_node(graph, _s(title), x, y)
+
+
+_lib.Rnode_graph_remove_node.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_remove_node.restype = None
+
+
+def Rnode_graph_remove_node(graph, node):
+    """Removes a node, its pins, their links, and the widget it holds."""
+    _lib.Rnode_graph_remove_node(graph, node)
+
+
+_lib.Rnode_graph_clear.argtypes = [ctypes.c_uint32]
+_lib.Rnode_graph_clear.restype = None
+
+
+def Rnode_graph_clear(graph):
+    _lib.Rnode_graph_clear(graph)
+
+
+_lib.Rnode_graph_get_node_count.argtypes = [ctypes.c_uint32]
+_lib.Rnode_graph_get_node_count.restype = ctypes.c_int
+
+
+def Rnode_graph_get_node_count(graph):
+    return _lib.Rnode_graph_get_node_count(graph)
+
+
+_lib.Rnode_graph_get_node.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_node.restype = ctypes.c_int
+
+
+def Rnode_graph_get_node(graph, index):
+    return _lib.Rnode_graph_get_node(graph, index)
+
+
+_lib.Rnode_graph_set_node_title.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_char_p]
+_lib.Rnode_graph_set_node_title.restype = None
+
+
+def Rnode_graph_set_node_title(graph, node, title):
+    _lib.Rnode_graph_set_node_title(graph, node, _s(title))
+
+
+_lib.Rnode_graph_get_node_title.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_node_title.restype = ctypes.c_char_p
+
+
+def Rnode_graph_get_node_title(graph, node):
+    return _r(_lib.Rnode_graph_get_node_title(graph, node))
+
+
+_lib.Rnode_graph_set_node_position.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_float, ctypes.c_float]
+_lib.Rnode_graph_set_node_position.restype = None
+
+
+def Rnode_graph_set_node_position(graph, node, x, y):
+    _lib.Rnode_graph_set_node_position(graph, node, x, y)
+
+
+_lib.Rnode_graph_get_node_position.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rnode_graph_get_node_position.restype = None
+
+
+def Rnode_graph_get_node_position(graph, node):
+    x_ = ctypes.c_float()
+    y_ = ctypes.c_float()
+    _lib.Rnode_graph_get_node_position(graph, node, ctypes.byref(x_), ctypes.byref(y_))
+    return (x_.value, y_.value)
+
+
+_lib.Rnode_graph_get_node_size.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rnode_graph_get_node_size.restype = None
+
+
+def Rnode_graph_get_node_size(graph, node):
+    """Size of a node on the canvas: Raven works it out from its title, its pins and its content."""
+    width_ = ctypes.c_float()
+    height_ = ctypes.c_float()
+    _lib.Rnode_graph_get_node_size(graph, node, ctypes.byref(width_), ctypes.byref(height_))
+    return (width_.value, height_.value)
+
+
+_lib.Rnode_graph_set_node_color.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rnode_graph_set_node_color.restype = None
+
+
+def Rnode_graph_set_node_color(graph, node, r, g, b):
+    """Color of the header of the node; without one it takes the accent color of the theme."""
+    _lib.Rnode_graph_set_node_color(graph, node, r, g, b)
+
+
+_lib.Rnode_graph_set_node_content.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+_lib.Rnode_graph_set_node_content.restype = None
+
+
+def Rnode_graph_set_node_content(graph, node, widget):
+    """Puts a widget inside the node, under its pins: the graph owns
+    it from now on. R_INVALID_ID removes (and deletes) the one it had."""
+    _lib.Rnode_graph_set_node_content(graph, node, widget)
+
+
+_lib.Rnode_graph_get_node_content.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_node_content.restype = ctypes.c_uint32
+
+
+def Rnode_graph_get_node_content(graph, node):
+    return _lib.Rnode_graph_get_node_content(graph, node)
+
+
+_lib.Rnode_graph_set_node_name.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_char_p]
+_lib.Rnode_graph_set_node_name.restype = None
+
+
+def Rnode_graph_set_node_name(graph, node, name):
+    """Name of the node, the `Name` of its XML element: what
+    <Link From="name.pin"> and Rnode_graph_find_node look for. Not shown."""
+    _lib.Rnode_graph_set_node_name(graph, node, _s(name))
+
+
+_lib.Rnode_graph_get_node_name.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_node_name.restype = ctypes.c_char_p
+
+
+def Rnode_graph_get_node_name(graph, node):
+    return _r(_lib.Rnode_graph_get_node_name(graph, node))
+
+
+_lib.Rnode_graph_find_node.argtypes = [ctypes.c_uint32, ctypes.c_char_p]
+_lib.Rnode_graph_find_node.restype = ctypes.c_int
+
+
+def Rnode_graph_find_node(graph, name):
+    """Returns: The node of that name, or 0."""
+    return _lib.Rnode_graph_find_node(graph, _s(name))
+
+
+_lib.Rnode_graph_set_node_user_data.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_void_p]
+_lib.Rnode_graph_set_node_user_data.restype = None
+
+
+def Rnode_graph_set_node_user_data(graph, node, user_data=None):
+    """Value the application attaches to a node."""
+    _lib.Rnode_graph_set_node_user_data(graph, node, user_data)
+
+
+_lib.Rnode_graph_get_node_user_data.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_node_user_data.restype = ctypes.c_void_p
+
+
+def Rnode_graph_get_node_user_data(graph, node):
+    return _lib.Rnode_graph_get_node_user_data(graph, node)
+
+
+_lib.Rnode_graph_add_input.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p]
+_lib.Rnode_graph_add_input.restype = ctypes.c_int
+
+
+def Rnode_graph_add_input(graph, node, label, type_):
+    """type Free text, or NULL for a pin that links to any type. Returns: The pin, or 0."""
+    return _lib.Rnode_graph_add_input(graph, node, _s(label), _s(type_))
+
+
+_lib.Rnode_graph_add_output.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p]
+_lib.Rnode_graph_add_output.restype = ctypes.c_int
+
+
+def Rnode_graph_add_output(graph, node, label, type_):
+    return _lib.Rnode_graph_add_output(graph, node, _s(label), _s(type_))
+
+
+_lib.Rnode_graph_remove_pin.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_remove_pin.restype = None
+
+
+def Rnode_graph_remove_pin(graph, pin):
+    _lib.Rnode_graph_remove_pin(graph, pin)
+
+
+_lib.Rnode_graph_get_pin_node.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_pin_node.restype = ctypes.c_int
+
+
+def Rnode_graph_get_pin_node(graph, pin):
+    return _lib.Rnode_graph_get_pin_node(graph, pin)
+
+
+_lib.Rnode_graph_is_pin_output.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_is_pin_output.restype = ctypes.c_int
+
+
+def Rnode_graph_is_pin_output(graph, pin):
+    return _lib.Rnode_graph_is_pin_output(graph, pin)
+
+
+_lib.Rnode_graph_get_pin_label.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_pin_label.restype = ctypes.c_char_p
+
+
+def Rnode_graph_get_pin_label(graph, pin):
+    return _r(_lib.Rnode_graph_get_pin_label(graph, pin))
+
+
+_lib.Rnode_graph_get_pin_type.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_pin_type.restype = ctypes.c_char_p
+
+
+def Rnode_graph_get_pin_type(graph, pin):
+    return _r(_lib.Rnode_graph_get_pin_type(graph, pin))
+
+
+_lib.Rnode_graph_set_pin_name.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_char_p]
+_lib.Rnode_graph_set_pin_name.restype = None
+
+
+def Rnode_graph_set_pin_name(graph, pin, name):
+    """Name of the pin for Rnode_graph_find_pin and for the links of XML; a pin without one answers to its label."""
+    _lib.Rnode_graph_set_pin_name(graph, pin, _s(name))
+
+
+_lib.Rnode_graph_find_pin.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_char_p]
+_lib.Rnode_graph_find_pin.restype = ctypes.c_int
+
+
+def Rnode_graph_find_pin(graph, node, name):
+    """Returns: The pin of a node with that name (or label), or 0."""
+    return _lib.Rnode_graph_find_pin(graph, node, _s(name))
+
+
+_lib.Rnode_graph_get_pin_position.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rnode_graph_get_pin_position.restype = None
+
+
+def Rnode_graph_get_pin_position(graph, pin):
+    """Where a pin is on the canvas (the middle of its dot)."""
+    x_ = ctypes.c_float()
+    y_ = ctypes.c_float()
+    _lib.Rnode_graph_get_pin_position(graph, pin, ctypes.byref(x_), ctypes.byref(y_))
+    return (x_.value, y_.value)
+
+
+_lib.Rnode_graph_get_input.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int]
+_lib.Rnode_graph_get_input.restype = ctypes.c_int
+
+
+def Rnode_graph_get_input(graph, node, index):
+    """Returns: The index-th input (or output) of a node, or 0."""
+    return _lib.Rnode_graph_get_input(graph, node, index)
+
+
+_lib.Rnode_graph_get_output.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int]
+_lib.Rnode_graph_get_output.restype = ctypes.c_int
+
+
+def Rnode_graph_get_output(graph, node, index):
+    return _lib.Rnode_graph_get_output(graph, node, index)
+
+
+_lib.Rnode_graph_set_type_color.argtypes = [ctypes.c_uint32, ctypes.c_char_p, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rnode_graph_set_type_color.restype = None
+
+
+def Rnode_graph_set_type_color(graph, type_, r, g, b):
+    """Color of the pins of a type and of the links between them."""
+    _lib.Rnode_graph_set_type_color(graph, _s(type_), r, g, b)
+
+
+_lib.Rnode_graph_connect.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int]
+_lib.Rnode_graph_connect.restype = ctypes.c_int
+
+
+def Rnode_graph_connect(graph, output_pin, input_pin):
+    """Links an output to an input, as the user does by dragging.
+    The connect callback is not asked.
+    Returns: The link; 0 when the pins cannot be linked (two inputs, the
+    same node, different types)."""
+    return _lib.Rnode_graph_connect(graph, output_pin, input_pin)
+
+
+_lib.Rnode_graph_disconnect.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_disconnect.restype = None
+
+
+def Rnode_graph_disconnect(graph, link):
+    _lib.Rnode_graph_disconnect(graph, link)
+
+
+_lib.Rnode_graph_get_link_count.argtypes = [ctypes.c_uint32]
+_lib.Rnode_graph_get_link_count.restype = ctypes.c_int
+
+
+def Rnode_graph_get_link_count(graph):
+    return _lib.Rnode_graph_get_link_count(graph)
+
+
+_lib.Rnode_graph_get_link.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_link.restype = ctypes.c_int
+
+
+def Rnode_graph_get_link(graph, index):
+    return _lib.Rnode_graph_get_link(graph, index)
+
+
+_lib.Rnode_graph_get_link_output.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_link_output.restype = ctypes.c_int
+
+
+def Rnode_graph_get_link_output(graph, link):
+    return _lib.Rnode_graph_get_link_output(graph, link)
+
+
+_lib.Rnode_graph_get_link_input.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_link_input.restype = ctypes.c_int
+
+
+def Rnode_graph_get_link_input(graph, link):
+    return _lib.Rnode_graph_get_link_input(graph, link)
+
+
+_lib.Rnode_graph_get_input_link.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_input_link.restype = ctypes.c_int
+
+
+def Rnode_graph_get_input_link(graph, input_pin):
+    """Returns: The link that arrives at an input pin, or 0."""
+    return _lib.Rnode_graph_get_input_link(graph, input_pin)
+
+
+_lib.Rnode_graph_set_view.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rnode_graph_set_view.restype = None
+
+
+def Rnode_graph_set_view(graph, center_x, center_y, zoom):
+    """What the middle of the widget shows: a point of the canvas, and how large (1 = one unit per logical unit)."""
+    _lib.Rnode_graph_set_view(graph, center_x, center_y, zoom)
+
+
+_lib.Rnode_graph_get_view.argtypes = [ctypes.c_uint32, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rnode_graph_get_view.restype = None
+
+
+def Rnode_graph_get_view(graph):
+    center_x_ = ctypes.c_float()
+    center_y_ = ctypes.c_float()
+    zoom_ = ctypes.c_float()
+    _lib.Rnode_graph_get_view(graph, ctypes.byref(center_x_), ctypes.byref(center_y_), ctypes.byref(zoom_))
+    return (center_x_.value, center_y_.value, zoom_.value)
+
+
+_lib.Rnode_graph_to_canvas.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rnode_graph_to_canvas.restype = None
+
+
+def Rnode_graph_to_canvas(graph, x, y):
+    """Converts a point of the widget (from its corner, as in the events) to the canvas, and back, with the view as it is shown now."""
+    canvas_x_ = ctypes.c_float()
+    canvas_y_ = ctypes.c_float()
+    _lib.Rnode_graph_to_canvas(graph, x, y, ctypes.byref(canvas_x_), ctypes.byref(canvas_y_))
+    return (canvas_x_.value, canvas_y_.value)
+
+
+_lib.Rnode_graph_from_canvas.argtypes = [ctypes.c_uint32, ctypes.c_float, ctypes.c_float, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+_lib.Rnode_graph_from_canvas.restype = None
+
+
+def Rnode_graph_from_canvas(graph, canvas_x, canvas_y):
+    x_ = ctypes.c_float()
+    y_ = ctypes.c_float()
+    _lib.Rnode_graph_from_canvas(graph, canvas_x, canvas_y, ctypes.byref(x_), ctypes.byref(y_))
+    return (x_.value, y_.value)
+
+
+_lib.Rnode_graph_frame_all.argtypes = [ctypes.c_uint32]
+_lib.Rnode_graph_frame_all.restype = None
+
+
+def Rnode_graph_frame_all(graph):
+    """Moves and zooms so that every node shows."""
+    _lib.Rnode_graph_frame_all(graph)
+
+
+_lib.Rnode_graph_set_grid_visible.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_set_grid_visible.restype = None
+
+
+def Rnode_graph_set_grid_visible(graph, visible):
+    """R_FALSE hides the grid of dots (shown by default)."""
+    _lib.Rnode_graph_set_grid_visible(graph, visible)
+
+
+_lib.Rnode_graph_set_flow_visible.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_set_flow_visible.restype = None
+
+
+def Rnode_graph_set_flow_visible(graph, visible):
+    """The pulses of light that run along the links, from output to
+    input. By default they run while the pointer is over the graph, and
+    the window rests the rest of the time. R_TRUE makes them run all the
+    time (the window then draws without pause); R_FALSE stops them."""
+    _lib.Rnode_graph_set_flow_visible(graph, visible)
+
+
+_lib.Rnode_graph_set_read_only.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_set_read_only.restype = None
+
+
+def Rnode_graph_set_read_only(graph, read_only):
+    """R_TRUE: the user can look but not move, link or delete."""
+    _lib.Rnode_graph_set_read_only(graph, read_only)
+
+
+_lib.Rnode_graph_select_node.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_int]
+_lib.Rnode_graph_select_node.restype = None
+
+
+def Rnode_graph_select_node(graph, node, add):
+    _lib.Rnode_graph_select_node(graph, node, add)
+
+
+_lib.Rnode_graph_clear_selection.argtypes = [ctypes.c_uint32]
+_lib.Rnode_graph_clear_selection.restype = None
+
+
+def Rnode_graph_clear_selection(graph):
+    _lib.Rnode_graph_clear_selection(graph)
+
+
+_lib.Rnode_graph_is_node_selected.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_is_node_selected.restype = ctypes.c_int
+
+
+def Rnode_graph_is_node_selected(graph, node):
+    return _lib.Rnode_graph_is_node_selected(graph, node)
+
+
+_lib.Rnode_graph_get_selection_count.argtypes = [ctypes.c_uint32]
+_lib.Rnode_graph_get_selection_count.restype = ctypes.c_int
+
+
+def Rnode_graph_get_selection_count(graph):
+    return _lib.Rnode_graph_get_selection_count(graph)
+
+
+_lib.Rnode_graph_get_selected_node.argtypes = [ctypes.c_uint32, ctypes.c_int]
+_lib.Rnode_graph_get_selected_node.restype = ctypes.c_int
+
+
+def Rnode_graph_get_selected_node(graph, index):
+    return _lib.Rnode_graph_get_selected_node(graph, index)
+
+
+_lib.Rnode_graph_set_connect_callback.argtypes = [ctypes.c_uint32, RNodeGraphConnectCallback, ctypes.c_void_p]
+_lib.Rnode_graph_set_connect_callback.restype = None
+
+
+def Rnode_graph_set_connect_callback(graph, callback, user_data=None):
+    _lib.Rnode_graph_set_connect_callback(graph, _callback(RNodeGraphConnectCallback, _adapt_RNodeGraphConnectCallback, callback), user_data)
+
+
+_lib.Rnode_graph_set_linked_callback.argtypes = [ctypes.c_uint32, RNodeGraphItemCallback, ctypes.c_void_p]
+_lib.Rnode_graph_set_linked_callback.restype = None
+
+
+def Rnode_graph_set_linked_callback(graph, callback, user_data=None):
+    """Called after the user made a link, and before a link the user removed goes (its pins can still be read)."""
+    _lib.Rnode_graph_set_linked_callback(graph, _callback(RNodeGraphItemCallback, _adapt_RNodeGraphItemCallback, callback), user_data)
+
+
+_lib.Rnode_graph_set_unlinked_callback.argtypes = [ctypes.c_uint32, RNodeGraphItemCallback, ctypes.c_void_p]
+_lib.Rnode_graph_set_unlinked_callback.restype = None
+
+
+def Rnode_graph_set_unlinked_callback(graph, callback, user_data=None):
+    _lib.Rnode_graph_set_unlinked_callback(graph, _callback(RNodeGraphItemCallback, _adapt_RNodeGraphItemCallback, callback), user_data)
+
+
+_lib.Rnode_graph_set_moved_callback.argtypes = [ctypes.c_uint32, RNodeGraphItemCallback, ctypes.c_void_p]
+_lib.Rnode_graph_set_moved_callback.restype = None
+
+
+def Rnode_graph_set_moved_callback(graph, callback, user_data=None):
+    """Called for each node the user moved, when the button is released."""
+    _lib.Rnode_graph_set_moved_callback(graph, _callback(RNodeGraphItemCallback, _adapt_RNodeGraphItemCallback, callback), user_data)
+
+
+_lib.Rnode_graph_set_selection_callback.argtypes = [ctypes.c_uint32, RNodeGraphItemCallback, ctypes.c_void_p]
+_lib.Rnode_graph_set_selection_callback.restype = None
+
+
+def Rnode_graph_set_selection_callback(graph, callback, user_data=None):
+    """Called when the selection changed; `item` is the node just clicked, or 0."""
+    _lib.Rnode_graph_set_selection_callback(graph, _callback(RNodeGraphItemCallback, _adapt_RNodeGraphItemCallback, callback), user_data)
+
+
+_lib.Rnode_graph_set_removed_callback.argtypes = [ctypes.c_uint32, RNodeGraphItemCallback, ctypes.c_void_p]
+_lib.Rnode_graph_set_removed_callback.restype = None
+
+
+def Rnode_graph_set_removed_callback(graph, callback, user_data=None):
+    """Called when the user deletes a node (the Delete key), before
+    it is removed. Without this callback the Delete key only removes
+    links: the application decides whether nodes can be deleted."""
+    _lib.Rnode_graph_set_removed_callback(graph, _callback(RNodeGraphItemCallback, _adapt_RNodeGraphItemCallback, callback), user_data)
 
 
 _lib.Rdialog_open.argtypes = [ctypes.c_uint32, ctypes.c_uint32, RDialogClosedCallback, ctypes.c_void_p]
@@ -5420,6 +7322,15 @@ def Rdraw_line(painter, x0, y0, x1, y1, thickness, r, g, b, a):
     _lib.Rdraw_line(painter, x0, y0, x1, y1, thickness, r, g, b, a)
 
 
+_lib.Rdraw_curve.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+_lib.Rdraw_curve.restype = None
+
+
+def Rdraw_curve(painter, x0, y0, cx0, cy0, cx1, cy1, x1, y1, thickness, r, g, b, a):
+    """Anti-aliased cubic Bezier curve from (x0, y0) to (x1, y1), pulled by two control points."""
+    _lib.Rdraw_curve(painter, x0, y0, cx0, cy0, cx1, cy1, x1, y1, thickness, r, g, b, a)
+
+
 _lib.Rdraw_triangle.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
 _lib.Rdraw_triangle.restype = None
 
@@ -5563,6 +7474,44 @@ def Rxml_set_base_path(path):
     _lib.Rxml_set_base_path(_s(path))
 
 
+_lib.Rxml_set_live_reload.argtypes = [ctypes.c_int]
+_lib.Rxml_set_live_reload.restype = None
+
+
+def Rxml_set_live_reload(enabled):
+    """Turns live reload on or off. It is on by default; the
+    environment variable RAVEN_LIVE_RELOAD=0 turns it off without
+    rebuilding. When off, files are never looked at again."""
+    _lib.Rxml_set_live_reload(enabled)
+
+
+_lib.Rxml_get_live_reload.argtypes = []
+_lib.Rxml_get_live_reload.restype = ctypes.c_int
+
+
+def Rxml_get_live_reload():
+    return _lib.Rxml_get_live_reload()
+
+
+_lib.Rxml_set_reload_callback.argtypes = [RXmlReloadCallback, ctypes.c_void_p]
+_lib.Rxml_set_reload_callback.restype = None
+
+
+def Rxml_set_reload_callback(callback, user_data=None):
+    _lib.Rxml_set_reload_callback(_callback(RXmlReloadCallback, _adapt_RXmlReloadCallback, callback), user_data)
+
+
+_lib.Rxml_check_files.argtypes = []
+_lib.Rxml_check_files.restype = ctypes.c_int
+
+
+def Rxml_check_files():
+    """Looks at the files now, without waiting for the next look
+    (there are five per second), even when live reload is off.
+    Returns: The number of files found changed."""
+    return _lib.Rxml_check_files()
+
+
 _lib.Rxml_register_widgets.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
 _lib.Rxml_register_widgets.restype = ctypes.c_int
 
@@ -5615,6 +7564,45 @@ _lib.Rxml_get_registered_widget_name.restype = ctypes.c_char_p
 
 def Rxml_get_registered_widget_name(index):
     return _r(_lib.Rxml_get_registered_widget_name(index))
+
+
+_lib.Rxml_register_tag.argtypes = [ctypes.c_char_p, RXmlTagCreateCallback, RXmlTagAttributeCallback, ctypes.c_void_p]
+_lib.Rxml_register_tag.restype = ctypes.c_int
+
+
+def Rxml_register_tag(tag, create, set_attribute, user_data=None):
+    """Registers a tag (or replaces what it was registered with).
+    Returns: R_FALSE when the name is the one of a widget of Raven, or when too many tags are registered (64)."""
+    return _lib.Rxml_register_tag(_s(tag), _callback(RXmlTagCreateCallback, _adapt_RXmlTagCreateCallback, create), _callback(RXmlTagAttributeCallback, _adapt_RXmlTagAttributeCallback, set_attribute), user_data)
+
+
+_lib.Rxml_unregister_tag.argtypes = [ctypes.c_char_p]
+_lib.Rxml_unregister_tag.restype = None
+
+
+def Rxml_unregister_tag(tag):
+    _lib.Rxml_unregister_tag(_s(tag))
+
+
+_lib.Rxml_is_tag_registered.argtypes = [ctypes.c_char_p]
+_lib.Rxml_is_tag_registered.restype = ctypes.c_int
+
+
+def Rxml_is_tag_registered(tag):
+    return _lib.Rxml_is_tag_registered(_s(tag))
+
+
+_lib.Rxml_resolve_path.argtypes = [ctypes.c_char_p]
+_lib.Rxml_resolve_path.restype = ctypes.c_char_p
+
+
+def Rxml_resolve_path(path):
+    """The path of a file named in a document: as the attributes
+    Source of Raven read it, relative to the folder of the document being
+    loaded (while it loads), else to the base path. For the attributes of
+    the tags made by code that name files.
+    Returns: The path; valid until the next call."""
+    return _r(_lib.Rxml_resolve_path(_s(path)))
 
 
 _lib.Rwidget_set_attribute.argtypes = [ctypes.c_uint32, ctypes.c_char_p, ctypes.c_char_p]

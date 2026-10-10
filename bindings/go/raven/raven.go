@@ -156,6 +156,21 @@ const (
 	R_WINDOW_BORDERLESS    RWindowFlags = 4
 	R_WINDOW_MAXIMIZED     RWindowFlags = 8
 	R_WINDOW_CUSTOM_HEADER RWindowFlags = 0x0010
+	R_WINDOW_TRANSPARENT   RWindowFlags = 0x0020
+)
+
+// RBackdrop: What is seen behind a window created with R_WINDOW_TRANSPARENT. Windows 11 every value Windows
+// 10 TRANSPARENT, BLUR, ACRYLIC (MICA gives ACRYLIC) X11 TRANSPARENT with any compositing manager; BLUR where
+// the compositor blurs on request (KWin; picom and others with their own settings); ACRYLIC and MICA give
+// BLUR no compositor nothing: the window stays opaque
+type RBackdrop int32
+
+const (
+	R_BACKDROP_NONE        RBackdrop = 0x0400
+	R_BACKDROP_TRANSPARENT RBackdrop = 0x0401
+	R_BACKDROP_BLUR        RBackdrop = 0x0402
+	R_BACKDROP_ACRYLIC     RBackdrop = 0x0403
+	R_BACKDROP_MICA        RBackdrop = 0x0404
 )
 
 type RWindowSystem int32
@@ -413,6 +428,11 @@ const (
 	R_COLOR_TOOLTIP          RColorRole = 0x011C
 	R_COLOR_TOOLTIP_TEXT     RColorRole = 0x011D
 	R_COLOR_SWITCH           RColorRole = 0x011E
+	R_COLOR_SUCCESS          RColorRole = 0x011F
+	R_COLOR_WARNING          RColorRole = 0x0120
+	R_COLOR_DANGER           RColorRole = 0x0121
+	R_COLOR_LINK             RColorRole = 0x0122
+	R_COLOR_CODE             RColorRole = 0x0123
 )
 
 // RMetric: Sizes, in logical units.
@@ -433,6 +453,22 @@ const (
 	R_METRIC_CHECK_SIZE         RMetric = 0x014B
 	R_METRIC_SLIDER_HANDLE_SIZE RMetric = 0x014C
 	R_METRIC_POPUP_RADIUS       RMetric = 0x014D
+	R_METRIC_GLASS_FROST        RMetric = 0x014E
+	R_METRIC_GLASS_REFRACTION   RMetric = 0x014F
+	R_METRIC_GLASS_SATURATION   RMetric = 0x0150
+	R_METRIC_GLASS_RIM          RMetric = 0x0151
+	R_METRIC_GLASS_SHADOW       RMetric = 0x0152
+	R_METRIC_BLUR_RADIUS        RMetric = 0x0153
+)
+
+// RFontStyle: The styles of a font (Rfont_get_variant).
+type RFontStyle int32
+
+const (
+	R_FONT_REGULAR     RFontStyle = 0x0420
+	R_FONT_BOLD        RFontStyle = 0x0421
+	R_FONT_ITALIC      RFontStyle = 0x0422
+	R_FONT_BOLD_ITALIC RFontStyle = 0x0423
 )
 
 type RFilterType int32
@@ -445,43 +481,47 @@ const (
 type RWidgetType int32
 
 const (
-	R_WIDGET_VBOX         RWidgetType = 0x0200
-	R_WIDGET_HBOX         RWidgetType = 0x0201
-	R_WIDGET_GRID         RWidgetType = 0x0202
-	R_WIDGET_UNIFORM_GRID RWidgetType = 0x0203
-	R_WIDGET_OVERLAY      RWidgetType = 0x0204
-	R_WIDGET_BORDER       RWidgetType = 0x0205
-	R_WIDGET_SIZE_BOX     RWidgetType = 0x0206
-	R_WIDGET_SPACER       RWidgetType = 0x0207
-	R_WIDGET_SCROLL_BOX   RWidgetType = 0x0208
-	R_WIDGET_SPLITTER     RWidgetType = 0x0209
-	R_WIDGET_WRAP_BOX     RWidgetType = 0x020A
-	R_WIDGET_CANVAS       RWidgetType = 0x020B
-	R_WIDGET_SWITCHER     RWidgetType = 0x020C
-	R_WIDGET_TAB_VIEW     RWidgetType = 0x020D
-	R_WIDGET_EXPANDER     RWidgetType = 0x020E
-	R_WIDGET_LABEL        RWidgetType = 0x020F
-	R_WIDGET_BUTTON       RWidgetType = 0x0210
-	R_WIDGET_CHECKBOX     RWidgetType = 0x0211
-	R_WIDGET_SLIDER       RWidgetType = 0x0212
-	R_WIDGET_PROGRESSBAR  RWidgetType = 0x0213
-	R_WIDGET_IMAGE        RWidgetType = 0x0214
-	R_WIDGET_TEXT_INPUT   RWidgetType = 0x0215
-	R_WIDGET_SPIN_BOX     RWidgetType = 0x0216
-	R_WIDGET_COMBO_BOX    RWidgetType = 0x0217
-	R_WIDGET_SEPARATOR    RWidgetType = 0x0218
-	R_WIDGET_LIST_VIEW    RWidgetType = 0x0219
-	R_WIDGET_TREE_VIEW    RWidgetType = 0x021A
-	R_WIDGET_MENU_BAR     RWidgetType = 0x021B
-	R_WIDGET_MENU         RWidgetType = 0x021C
-	R_WIDGET_MENU_ITEM    RWidgetType = 0x021D
-	R_WIDGET_VIEWPORT     RWidgetType = 0x021E
-	R_WIDGET_CUSTOM       RWidgetType = 0x021F
-	R_WIDGET_TEXT_EDITOR  RWidgetType = 0x0220
-	R_WIDGET_HEADER_BAR   RWidgetType = 0x0221
-	R_WIDGET_DOCK_AREA    RWidgetType = 0x0222
-	R_WIDGET_ISLAND       RWidgetType = 0x0223
-	R_WIDGET_FILE_BROWSER RWidgetType = 0x0224
+	R_WIDGET_VBOX            RWidgetType = 0x0200
+	R_WIDGET_HBOX            RWidgetType = 0x0201
+	R_WIDGET_GRID            RWidgetType = 0x0202
+	R_WIDGET_UNIFORM_GRID    RWidgetType = 0x0203
+	R_WIDGET_OVERLAY         RWidgetType = 0x0204
+	R_WIDGET_BORDER          RWidgetType = 0x0205
+	R_WIDGET_SIZE_BOX        RWidgetType = 0x0206
+	R_WIDGET_SPACER          RWidgetType = 0x0207
+	R_WIDGET_SCROLL_BOX      RWidgetType = 0x0208
+	R_WIDGET_SPLITTER        RWidgetType = 0x0209
+	R_WIDGET_WRAP_BOX        RWidgetType = 0x020A
+	R_WIDGET_CANVAS          RWidgetType = 0x020B
+	R_WIDGET_SWITCHER        RWidgetType = 0x020C
+	R_WIDGET_TAB_VIEW        RWidgetType = 0x020D
+	R_WIDGET_EXPANDER        RWidgetType = 0x020E
+	R_WIDGET_LABEL           RWidgetType = 0x020F
+	R_WIDGET_BUTTON          RWidgetType = 0x0210
+	R_WIDGET_CHECKBOX        RWidgetType = 0x0211
+	R_WIDGET_SLIDER          RWidgetType = 0x0212
+	R_WIDGET_PROGRESSBAR     RWidgetType = 0x0213
+	R_WIDGET_IMAGE           RWidgetType = 0x0214
+	R_WIDGET_TEXT_INPUT      RWidgetType = 0x0215
+	R_WIDGET_SPIN_BOX        RWidgetType = 0x0216
+	R_WIDGET_COMBO_BOX       RWidgetType = 0x0217
+	R_WIDGET_SEPARATOR       RWidgetType = 0x0218
+	R_WIDGET_LIST_VIEW       RWidgetType = 0x0219
+	R_WIDGET_TREE_VIEW       RWidgetType = 0x021A
+	R_WIDGET_MENU_BAR        RWidgetType = 0x021B
+	R_WIDGET_MENU            RWidgetType = 0x021C
+	R_WIDGET_MENU_ITEM       RWidgetType = 0x021D
+	R_WIDGET_VIEWPORT        RWidgetType = 0x021E
+	R_WIDGET_CUSTOM          RWidgetType = 0x021F
+	R_WIDGET_TEXT_EDITOR     RWidgetType = 0x0220
+	R_WIDGET_HEADER_BAR      RWidgetType = 0x0221
+	R_WIDGET_DOCK_AREA       RWidgetType = 0x0222
+	R_WIDGET_ISLAND          RWidgetType = 0x0223
+	R_WIDGET_FILE_BROWSER    RWidgetType = 0x0224
+	R_WIDGET_BACKGROUND_BLUR RWidgetType = 0x0225
+	R_WIDGET_COLOR_PICKER    RWidgetType = 0x0226
+	R_WIDGET_TIMELINE        RWidgetType = 0x0227
+	R_WIDGET_NODE_GRAPH      RWidgetType = 0x0228
 )
 
 type RHAlign int32
@@ -533,6 +573,18 @@ type ROrientation int32
 const (
 	R_HORIZONTAL ROrientation = 0x0270
 	R_VERTICAL   ROrientation = 0x0271
+)
+
+// RBlurStyle: The looks of a R_WIDGET_BACKGROUND_BLUR. The first three are drawn by Raven from what the
+// window shows behind the widget; the last one is the blur of the OS, which sees what is behind the window
+// itself.
+type RBlurStyle int32
+
+const (
+	R_BLUR_PLAIN   RBlurStyle = 0x0440
+	R_BLUR_FROSTED RBlurStyle = 0x0441
+	R_BLUR_GLASS   RBlurStyle = 0x0442
+	R_BLUR_NATIVE  RBlurStyle = 0x0443
 )
 
 type RTextAlign int32
@@ -587,6 +639,7 @@ const (
 	R_LANGUAGE_INDENT_ON_COLON RLanguageFlags = 0x0010
 	R_LANGUAGE_IGNORE_CASE     RLanguageFlags = 0x0020
 	R_LANGUAGE_EMBEDS          RLanguageFlags = 0x0040
+	R_LANGUAGE_FORMATTED_TEXT  RLanguageFlags = 0x0080
 )
 
 // RToken: What a part of the text is, for the language of the editor (Rtext_editor_get_token).
@@ -604,6 +657,10 @@ const (
 	R_TOKEN_ATTRIBUTE   RToken = 0x03A8
 	R_TOKEN_PUNCTUATION RToken = 0x03A9
 	R_TOKEN_DIRECTIVE   RToken = 0x03AA
+	R_TOKEN_HEADING     RToken = 0x03AB
+	R_TOKEN_STRONG      RToken = 0x03AC
+	R_TOKEN_EMPHASIS    RToken = 0x03AD
+	R_TOKEN_LINK        RToken = 0x03AE
 )
 
 // RMarkerKind: What a marker says about the text it underlines.
@@ -635,6 +692,16 @@ const (
 	R_DOCK_TOP    RDockSide = 0x0362
 	R_DOCK_BOTTOM RDockSide = 0x0363
 	R_DOCK_TAB    RDockSide = 0x0364
+)
+
+// RTimelineItem: What an item of a timeline is.
+type RTimelineItem int32
+
+const (
+	R_TIMELINE_NONE   RTimelineItem = 0x0460
+	R_TIMELINE_CLIP   RTimelineItem = 0x0461
+	R_TIMELINE_KEY    RTimelineItem = 0x0462
+	R_TIMELINE_MARKER RTimelineItem = 0x0463
 )
 
 type RFileDialogFlags int32
@@ -840,6 +907,15 @@ func ActionFire(name string, sender ID) {
 	C.Raction_fire(name_, C.Rid(sender))
 }
 
+// OpenUrl: Opens an address with the program the user has for it: a web page in the browser, a mailto: in the
+// mail program, a file in its application. Returns at once. Returns: R_FALSE when the OS could not be asked
+// (nothing tells whether a program then really opened it).
+func OpenUrl(url string) int {
+	url_ := C.CString(url)
+	defer C.free(unsafe.Pointer(url_))
+	return int(C.Ropen_url(url_))
+}
+
 func ClipboardSetText(text string) {
 	text_ := C.CString(text)
 	defer C.free(unsafe.Pointer(text_))
@@ -1003,6 +1079,29 @@ func WindowSetBackground(window ID, texture ID) {
 	C.Rwindow_set_background(C.Rid(window), C.Rid(texture))
 }
 
+// WindowSetBackdrop: Chooses what shows behind a window created with R_WINDOW_TRANSPARENT (see RBackdrop).
+// With anything but R_BACKDROP_NONE the window is not cleared with its color and the wallpaper of the theme
+// is not drawn: only what the widgets draw hides the screen. In XML: <Window Backdrop="Blur">. Returns:
+// R_TRUE when the window system does it; R_FALSE (the window then stays as it was) without
+// R_WINDOW_TRANSPARENT, or when it cannot.
+func WindowSetBackdrop(window ID, backdrop RBackdrop) int {
+	return int(C.Rwindow_set_backdrop(C.Rid(window), C.RBackdrop(backdrop)))
+}
+
+func WindowGetBackdrop(window ID) RBackdrop {
+	return RBackdrop(C.Rwindow_get_backdrop(C.Rid(window)))
+}
+
+// WindowSetOpacity: Opacity of the whole window, its frame included, from 0 to 1: a window that fades, a tool
+// that lets what is under it show. Returns: R_FALSE when the window system cannot do it.
+func WindowSetOpacity(window ID, opacity float32) int {
+	return int(C.Rwindow_set_opacity(C.Rid(window), C.float(opacity)))
+}
+
+func WindowGetOpacity(window ID) float32 {
+	return float32(C.Rwindow_get_opacity(C.Rid(window)))
+}
+
 // WindowRequestRedraw: Asks for a new frame even if no widget changed. Thread-safe.
 func WindowRequestRedraw(window ID) {
 	C.Rwindow_request_redraw(C.Rid(window))
@@ -1124,6 +1223,118 @@ func ThemeGetFont() ID {
 	return ID(C.Rtheme_get_font())
 }
 
+// ThemeSetAccent: Sets the accent color and everything that follows from it: its hovered and pressed shades,
+// the focus outline, the selection, the links.
+func ThemeSetAccent(r float32, g float32, b float32) {
+	C.Rtheme_set_accent(C.float(r), C.float(g), C.float(b))
+}
+
+// ThemeSetDark: Tells whether the theme is a dark one. It decides the tint of the glass, the colors of the
+// code and which wallpaper the glass themes use. Rtheme_apply and the theme files set it.
+func ThemeSetDark(dark int) {
+	C.Rtheme_set_dark(C.int(dark))
+}
+
+func ThemeIsDark() int {
+	return int(C.Rtheme_is_dark())
+}
+
+// ThemeSetWallpaper: Image drawn behind the content of the windows that have no background of their own, or
+// R_INVALID_ID for none (the window color).
+func ThemeSetWallpaper(texture ID) {
+	C.Rtheme_set_wallpaper(C.Rid(texture))
+}
+
+func ThemeGetWallpaper() ID {
+	return ID(C.Rtheme_get_wallpaper())
+}
+
+// ThemeSetStyleColor: Gives a color to the widgets of a type and / or of a class, instead of the color of the
+// theme. widget Tag of a type of widget ("Button"), or NULL for every type. style_class A class
+// (Rwidget_set_class, Class="..."), or NULL for the widgets of the type whatever their classes. When several
+// styles give the same value to a widget, the one with a type and a class wins over the one with a class,
+// which wins over the one with a type; between equals, the last one set wins.
+func ThemeSetStyleColor(widget string, style_class string, role RColorRole, r float32, g float32, b float32, a float32) {
+	widget_ := C.CString(widget)
+	defer C.free(unsafe.Pointer(widget_))
+	style_class_ := C.CString(style_class)
+	defer C.free(unsafe.Pointer(style_class_))
+	C.Rtheme_set_style_color(widget_, style_class_, C.RColorRole(role), C.float(r), C.float(g), C.float(b), C.float(a))
+}
+
+func ThemeSetStyleMetric(widget string, style_class string, metric RMetric, value float32) {
+	widget_ := C.CString(widget)
+	defer C.free(unsafe.Pointer(widget_))
+	style_class_ := C.CString(style_class)
+	defer C.free(unsafe.Pointer(style_class_))
+	C.Rtheme_set_style_metric(widget_, style_class_, C.RMetric(metric), C.float(value))
+}
+
+// ThemeSetStyleMaterial: R_MATERIAL_DEFAULT removes the material of the style.
+func ThemeSetStyleMaterial(widget string, style_class string, material RMaterial) {
+	widget_ := C.CString(widget)
+	defer C.free(unsafe.Pointer(widget_))
+	style_class_ := C.CString(style_class)
+	defer C.free(unsafe.Pointer(style_class_))
+	C.Rtheme_set_style_material(widget_, style_class_, C.RMaterial(material))
+}
+
+// ThemeClearStyles: Removes every style of the theme. Rtheme_apply and Rtheme_use do it too.
+func ThemeClearStyles() {
+	C.Rtheme_clear_styles()
+}
+
+// ThemeLoad: Reads a theme file and keeps the theme under its name (the Name attribute, else the name of the
+// file). It does not change the theme in use unless a theme of that name is the one in use. The file is
+// watched like the interface files (Rxml_set_live_reload): saving it updates every widget that uses the
+// theme. Returns: The name of the theme, valid until Rshutdown, or NULL after reporting an error.
+func ThemeLoad(path string) string {
+	path_ := C.CString(path)
+	defer C.free(unsafe.Pointer(path_))
+	return C.GoString(C.Rtheme_load(path_))
+}
+
+// ThemeLoadFromMemory: Same, from a text. `size` may be 0 for a null-terminated text.
+func ThemeLoadFromMemory(xml string) string {
+	xml_ := C.CString(xml)
+	defer C.free(unsafe.Pointer(xml_))
+	return C.GoString(C.Rtheme_load_from_memory(xml_, C.size_t(len(xml))))
+}
+
+// ThemeUse: Makes a named theme the theme of the application: "Dark", "Light", "GlassDark", "GlassLight", or
+// a theme given by Rtheme_load. Values changed with Rtheme_set_... are lost. Returns: R_FALSE, after
+// reporting an error, when no theme has that name.
+func ThemeUse(name string) int {
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	return int(C.Rtheme_use(name_))
+}
+
+// ThemeGetName: Name of the theme in use ("Dark" at start).
+func ThemeGetName() string {
+	return C.GoString(C.Rtheme_get_name())
+}
+
+// ThemeGetCount: Number of named themes, the four built-in ones included.
+func ThemeGetCount() int {
+	return int(C.Rtheme_get_count())
+}
+
+// ThemeGetNameAt: Name of the index-th one, or NULL.
+func ThemeGetNameAt(index int) string {
+	return C.GoString(C.Rtheme_get_name_at(C.int(index)))
+}
+
+// ThemeSave: Writes the theme in use, with every change made since it was applied, as a theme file. name Name
+// given to the theme in the file; NULL keeps the current one.
+func ThemeSave(path string, name string) int {
+	path_ := C.CString(path)
+	defer C.free(unsafe.Pointer(path_))
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	return int(C.Rtheme_save(path_, name_))
+}
+
 // FontCreate: Creates a font from the content of a .ttf / .otf file. The buffer is copied. Glyphs are
 // rasterized on demand, at the exact pixel size needed by each window scale, into a shared atlas. Returns:
 // R_INVALID_ID on failure.
@@ -1164,6 +1375,22 @@ func FontGetMonospace() ID {
 // Fallbacks can be chained.
 func FontSetFallback(font ID, fallback ID) {
 	C.Rfont_set_fallback(C.Rid(font), C.Rid(fallback))
+}
+
+// FontSetVariant: Gives a font the font to use for one of its styles: the bold file of the same family, its
+// italic file. Formatted text (Markdown labels, the Markdown of the text editor) uses them. A font that was
+// given none still has the three styles: Raven draws its glyphs thicker for bold and slanted for italic,
+// keeping their advances, so that text does not move when its style changes. variant R_INVALID_ID goes back
+// to the style Raven derives.
+func FontSetVariant(font ID, style RFontStyle, variant ID) {
+	C.Rfont_set_variant(C.Rid(font), C.RFontStyle(style), C.Rid(variant))
+}
+
+// FontGetVariant: Returns: The font drawn for a style of `font`: the one given with Rfont_set_variant, else
+// the one Raven derives from it (made on first use; it lives as long as `font` and cannot be deleted by
+// itself). Usable wherever a font is: Rlabel_set_font, Rdraw_text...
+func FontGetVariant(font ID, style RFontStyle) ID {
+	return ID(C.Rfont_get_variant(C.Rid(font), C.RFontStyle(style)))
 }
 
 // FontMeasureText: Measures a UTF-8 string, in logical units, at scale 1. font R_INVALID_ID uses the theme
@@ -1550,6 +1777,21 @@ func WidgetClearColor(widget ID, role RColorRole) {
 	C.Rwidget_clear_color(C.Rid(widget), C.RColorRole(role))
 }
 
+// WidgetGetColor: The color the widget is drawn with for a role: its own, else the one of the styles of its
+// theme that apply to it, else the one of its theme. What a custom widget should draw itself with.
+func WidgetGetColor(widget ID, role RColorRole) (r float32, g float32, b float32, a float32) {
+	var r_ C.float
+	var g_ C.float
+	var b_ C.float
+	var a_ C.float
+	C.Rwidget_get_color(C.Rid(widget), C.RColorRole(role), &r_, &g_, &b_, &a_)
+	r = float32(r_)
+	g = float32(g_)
+	b = float32(b_)
+	a = float32(a_)
+	return
+}
+
 // WidgetSetMaterial: Gives one widget a material of its own, whatever the theme: a solid button in a glass
 // window, a panel of clear glass in a flat one. A widget that draws no surface (a box, a label) gets one of
 // this material behind it: any widget can become a panel of glass. In XML: Material="Glass | FrostedGlass |
@@ -1572,9 +1814,66 @@ func WidgetClearMetric(widget ID, metric RMetric) {
 	C.Rwidget_clear_metric(C.Rid(widget), C.RMetric(metric))
 }
 
+// WidgetGetMetric: Returns: The metric the widget uses: its own, else the one of a style, else the one of its
+// theme.
+func WidgetGetMetric(widget ID, metric RMetric) float32 {
+	return float32(C.Rwidget_get_metric(C.Rid(widget), C.RMetric(metric)))
+}
+
+// WidgetSetClass: Classes of the widget, separated by spaces ("danger large"): the styles of the theme made
+// for these classes apply to it (Rtheme_set_style_color, <Style Class="danger" .../> in a theme file). In
+// XML: Class="...". NULL or "" removes them.
+func WidgetSetClass(widget ID, classes string) {
+	classes_ := C.CString(classes)
+	defer C.free(unsafe.Pointer(classes_))
+	C.Rwidget_set_class(C.Rid(widget), classes_)
+}
+
+// WidgetGetClass: Returns: The classes, "" when it has none. Valid until they change.
+func WidgetGetClass(widget ID) string {
+	return C.GoString(C.Rwidget_get_class(C.Rid(widget)))
+}
+
+func WidgetAddClass(widget ID, style_class string) {
+	style_class_ := C.CString(style_class)
+	defer C.free(unsafe.Pointer(style_class_))
+	C.Rwidget_add_class(C.Rid(widget), style_class_)
+}
+
+func WidgetRemoveClass(widget ID, style_class string) {
+	style_class_ := C.CString(style_class)
+	defer C.free(unsafe.Pointer(style_class_))
+	C.Rwidget_remove_class(C.Rid(widget), style_class_)
+}
+
+func WidgetHasClass(widget ID, style_class string) int {
+	style_class_ := C.CString(style_class)
+	defer C.free(unsafe.Pointer(style_class_))
+	return int(C.Rwidget_has_class(C.Rid(widget), style_class_))
+}
+
+// WidgetSetTheme: Gives the widget and everything inside it a theme of their own, by name ("Dark",
+// "GlassLight", or a theme of Rtheme_load): a dark side bar in a light window, a preview of another theme.
+// Menus and lists opened from inside follow. In XML: Theme="...". name NULL or "" follows the parent (the
+// application theme) again. Returns: R_FALSE, after reporting an error, when no theme has that name.
+func WidgetSetTheme(widget ID, name string) int {
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	return int(C.Rwidget_set_theme(C.Rid(widget), name_))
+}
+
+// WidgetGetTheme: Returns: Name of the theme the widget is drawn with.
+func WidgetGetTheme(widget ID) string {
+	return C.GoString(C.Rwidget_get_theme(C.Rid(widget)))
+}
+
 // PanelSetSpacing: Gap inserted between neighbouring children.
 func PanelSetSpacing(panel ID, spacing float32) {
 	C.Rpanel_set_spacing(C.Rid(panel), C.float(spacing))
+}
+
+func PanelGetSpacing(panel ID) float32 {
+	return float32(C.Rpanel_get_spacing(C.Rid(panel)))
 }
 
 // GridSetColumnFill: Lets a column / row grow to take a share of the free space (Slate FillColumn / FillRow).
@@ -1680,6 +1979,69 @@ func SplitterSetMinPaneSize(splitter ID, size float32) {
 	C.Rsplitter_set_min_pane_size(C.Rid(splitter), C.float(size))
 }
 
+// BackgroundBlurCreate: Creates a panel that shows what is behind it out of focus, with one child over it. In
+// XML: <BackgroundBlur Style="Frosted" Radius="24" CornerRadius="18" Padding="16"> <Label>Over a blurred view
+// of the window</Label> </BackgroundBlur> It works in any theme and with any material: it is not the glass of
+// the glass themes (which bends and reflects), but the looks of RBlurStyle. Unlike the opacity of a widget,
+// it does not let what is behind show sharp.
+func BackgroundBlurCreate() ID {
+	return ID(C.Rbackground_blur_create())
+}
+
+func BackgroundBlurSetStyle(blur ID, style RBlurStyle) {
+	C.Rbackground_blur_set_style(C.Rid(blur), C.RBlurStyle(style))
+}
+
+func BackgroundBlurGetStyle(blur ID) RBlurStyle {
+	return RBlurStyle(C.Rbackground_blur_get_style(C.Rid(blur)))
+}
+
+// BackgroundBlurSetRadius: How far what is behind goes out of focus, in logical units: 4 softens, 20 hides
+// the details, 60 leaves only colors. A negative value (the default) uses R_METRIC_BLUR_RADIUS of the theme.
+func BackgroundBlurSetRadius(blur ID, radius float32) {
+	C.Rbackground_blur_set_radius(C.Rid(blur), C.float(radius))
+}
+
+func BackgroundBlurGetRadius(blur ID) float32 {
+	return float32(C.Rbackground_blur_get_radius(C.Rid(blur)))
+}
+
+// BackgroundBlurSetTint: Color laid over the blur; its alpha is how much of it. Without one, R_BLUR_PLAIN has
+// none and the other styles take theirs from the theme (R_COLOR_PANEL).
+func BackgroundBlurSetTint(blur ID, r float32, g float32, b float32, a float32) {
+	C.Rbackground_blur_set_tint(C.Rid(blur), C.float(r), C.float(g), C.float(b), C.float(a))
+}
+
+// BackgroundBlurClearTint: Removes the tint given with Rbackground_blur_set_tint.
+func BackgroundBlurClearTint(blur ID) {
+	C.Rbackground_blur_clear_tint(C.Rid(blur))
+}
+
+// BackgroundBlurSetSaturation: Saturation of what is seen through: 1 = as it is, 0 = gray, 1.5 = vivid.
+// Negative = the one of the style.
+func BackgroundBlurSetSaturation(blur ID, saturation float32) {
+	C.Rbackground_blur_set_saturation(C.Rid(blur), C.float(saturation))
+}
+
+// BackgroundBlurSetGrain: Fine grain over the blur, 0 = none .. 1. Negative = the one of the style.
+func BackgroundBlurSetGrain(blur ID, grain float32) {
+	C.Rbackground_blur_set_grain(C.Rid(blur), C.float(grain))
+}
+
+func BackgroundBlurSetCornerRadius(blur ID, top_left float32, top_right float32, bottom_right float32, bottom_left float32) {
+	C.Rbackground_blur_set_corner_radius(C.Rid(blur), C.float(top_left), C.float(top_right), C.float(bottom_right), C.float(bottom_left))
+}
+
+// BackgroundBlurSetPadding: Space between the edge and the child.
+func BackgroundBlurSetPadding(blur ID, left float32, top float32, right float32, bottom float32) {
+	C.Rbackground_blur_set_padding(C.Rid(blur), C.float(left), C.float(top), C.float(right), C.float(bottom))
+}
+
+// BackgroundBlurSetShadow: Soft shadow under the panel; blur 0 = none (default).
+func BackgroundBlurSetShadow(blur ID, shadow_blur float32) {
+	C.Rbackground_blur_set_shadow(C.Rid(blur), C.float(shadow_blur))
+}
+
 func SwitcherSetIndex(switcher ID, index int) {
 	C.Rswitcher_set_index(C.Rid(switcher), C.int(index))
 }
@@ -1758,6 +2120,28 @@ func LabelSetWrap(label ID, wrap int) {
 // LabelSetColor: Text color (R_COLOR_TEXT of this widget).
 func LabelSetColor(label ID, r float32, g float32, b float32, a float32) {
 	C.Rlabel_set_color(C.Rid(label), C.float(r), C.float(g), C.float(b), C.float(a))
+}
+
+// LabelSetMarkdown: R_TRUE reads the text as Markdown and shows it formatted (Markdown="true" in XML): #
+// titles, **strong**, *emphasis*, `code`, ~~struck~~, [links](url), lists and lists in lists, - [x] task
+// lists, > quotes, --- rules, | tables |, images alone on their line, and ``` blocks of code with the colors
+// of their language (```c, ```python...: the languages of the text editor, raven_text_editor.h). The text
+// wraps on the width of the label unless Rlabel_set_wrap said otherwise; put the label in a scroll box for a
+// long document. Strong and emphasized text use the bold and italic of the font (Rfont_set_variant), which
+// Raven derives from the font itself when it was given none. The colors come from the theme: R_COLOR_LINK,
+// R_COLOR_CODE, R_COLOR_SEPARATOR, R_COLOR_ACCENT.
+func LabelSetMarkdown(label ID, enabled int) {
+	C.Rlabel_set_markdown(C.Rid(label), C.int(enabled))
+}
+
+func LabelGetMarkdown(label ID) int {
+	return int(C.Rlabel_get_markdown(C.Rid(label)))
+}
+
+// LabelGetPlainText: The text of a Markdown label without its marks, as a reader sees it. Valid until the
+// next call.
+func LabelGetPlainText(label ID) string {
+	return C.GoString(C.Rlabel_get_plain_text(C.Rid(label)))
 }
 
 // ButtonCreate: Shortcut for Rwidget_create(R_WIDGET_BUTTON) + Rbutton_set_text.
@@ -2292,6 +2676,18 @@ func TextEditorGetLanguage(editor ID) string {
 	return C.GoString(C.Rtext_editor_get_language(C.Rid(editor)))
 }
 
+// TextEditorSetMarkdown: R_TRUE makes the editor an editor of Markdown (the "Markdown" language;
+// Markdown="true" in XML): the text stays as it is written, and what it formats shows while typing, strong
+// text in bold, emphasized text in italic, titles in bold, code, links and marks in their colors. A label
+// with Rlabel_set_markdown shows the same text formatted. R_FALSE removes the language.
+func TextEditorSetMarkdown(editor ID, enabled int) {
+	C.Rtext_editor_set_markdown(C.Rid(editor), C.int(enabled))
+}
+
+func TextEditorGetMarkdown(editor ID) int {
+	return int(C.Rtext_editor_get_markdown(C.Rid(editor)))
+}
+
 // TextEditorGetToken: What the language of the editor makes of the character at a position: the colors come
 // from it. R_TOKEN_TEXT without a language.
 func TextEditorGetToken(editor ID, line int, column int) RToken {
@@ -2345,6 +2741,30 @@ func TextEditorClearMarkers(editor ID) {
 
 func TextEditorGetMarkerCount(editor ID) int {
 	return int(C.Rtext_editor_get_marker_count(C.Rid(editor)))
+}
+
+// ThemeSetTokenColor: Color of a kind of token in the theme in use, instead of the one Raven picks for dark
+// and for light themes. Theme files set them with <Syntax Keyword="#FF7AB2" String="..."/>.
+func ThemeSetTokenColor(token RToken, r float32, g float32, b float32, a float32) {
+	C.Rtheme_set_token_color(C.RToken(token), C.float(r), C.float(g), C.float(b), C.float(a))
+}
+
+func ThemeGetTokenColor(token RToken) (r float32, g float32, b float32, a float32) {
+	var r_ C.float
+	var g_ C.float
+	var b_ C.float
+	var a_ C.float
+	C.Rtheme_get_token_color(C.RToken(token), &r_, &g_, &b_, &a_)
+	r = float32(r_)
+	g = float32(g_)
+	b = float32(b_)
+	a = float32(a_)
+	return
+}
+
+// ThemeClearTokenColors: Back to the colors Raven picks.
+func ThemeClearTokenColors() {
+	C.Rtheme_clear_token_colors()
 }
 
 // HeaderBarCreate: title Text shown in the bar; NULL shows the title of the window.
@@ -2496,6 +2916,621 @@ func WindowSetIsland(window ID, widget ID) {
 
 func WindowGetIsland(window ID) ID {
 	return ID(C.Rwindow_get_island(C.Rid(window)))
+}
+
+func ColorPickerCreate() ID {
+	return ID(C.Rcolor_picker_create())
+}
+
+// ColorPickerSetColor: Sets the color (0..1 each). The callback is not called.
+func ColorPickerSetColor(picker ID, r float32, g float32, b float32, a float32) {
+	C.Rcolor_picker_set_color(C.Rid(picker), C.float(r), C.float(g), C.float(b), C.float(a))
+}
+
+func ColorPickerGetColor(picker ID) (r float32, g float32, b float32, a float32) {
+	var r_ C.float
+	var g_ C.float
+	var b_ C.float
+	var a_ C.float
+	C.Rcolor_picker_get_color(C.Rid(picker), &r_, &g_, &b_, &a_)
+	r = float32(r_)
+	g = float32(g_)
+	b = float32(b_)
+	a = float32(a_)
+	return
+}
+
+// ColorPickerSetHsv: The same color as hue (0..360), saturation and value (0..1). The picker remembers the
+// hue of a gray and the saturation of black, which red, green and blue cannot tell.
+func ColorPickerSetHsv(picker ID, hue float32, saturation float32, value float32) {
+	C.Rcolor_picker_set_hsv(C.Rid(picker), C.float(hue), C.float(saturation), C.float(value))
+}
+
+func ColorPickerGetHsv(picker ID) (hue float32, saturation float32, value float32) {
+	var hue_ C.float
+	var saturation_ C.float
+	var value_ C.float
+	C.Rcolor_picker_get_hsv(C.Rid(picker), &hue_, &saturation_, &value_)
+	hue = float32(hue_)
+	saturation = float32(saturation_)
+	value = float32(value_)
+	return
+}
+
+// ColorPickerSetHex: Sets the color from text: "#RGB", "#RRGGBB", "#RRGGBBAA" (the '#' may be left out) or
+// one of the color names of the XML attributes. A code without opacity leaves the opacity as it is. Returns:
+// R_FALSE when the text is not a color (the color is unchanged).
+func ColorPickerSetHex(picker ID, text string) int {
+	text_ := C.CString(text)
+	defer C.free(unsafe.Pointer(text_))
+	return int(C.Rcolor_picker_set_hex(C.Rid(picker), text_))
+}
+
+// ColorPickerGetHex: Returns: "#RRGGBB", or "#RRGGBBAA" when the opacity is shown and not full. Valid until
+// the color changes.
+func ColorPickerGetHex(picker ID) string {
+	return C.GoString(C.Rcolor_picker_get_hex(C.Rid(picker)))
+}
+
+// ColorPickerSetAlphaEnabled: R_TRUE (default) shows the opacity strip and the fourth number. R_FALSE: colors
+// are opaque.
+func ColorPickerSetAlphaEnabled(picker ID, enabled int) {
+	C.Rcolor_picker_set_alpha_enabled(C.Rid(picker), C.int(enabled))
+}
+
+// ColorPickerSetPreviousColor: The color shown next to the current one, to compare with what was there
+// before: clicking it comes back to it. Rcolor_picker_set_color does not change it; a popup picker takes it
+// when it opens.
+func ColorPickerSetPreviousColor(picker ID, r float32, g float32, b float32, a float32) {
+	C.Rcolor_picker_set_previous_color(C.Rid(picker), C.float(r), C.float(g), C.float(b), C.float(a))
+}
+
+// ColorPickerAddSwatch: Adds a color to the row of swatches: one click takes it.
+func ColorPickerAddSwatch(picker ID, r float32, g float32, b float32, a float32) {
+	C.Rcolor_picker_add_swatch(C.Rid(picker), C.float(r), C.float(g), C.float(b), C.float(a))
+}
+
+func ColorPickerClearSwatches(picker ID) {
+	C.Rcolor_picker_clear_swatches(C.Rid(picker))
+}
+
+func ColorPickerGetSwatchCount(picker ID) int {
+	return int(C.Rcolor_picker_get_swatch_count(C.Rid(picker)))
+}
+
+// ColorPickerSetPopup: R_TRUE turns the widget into a swatch that opens the picker in a popup.
+func ColorPickerSetPopup(picker ID, popup int) {
+	C.Rcolor_picker_set_popup(C.Rid(picker), C.int(popup))
+}
+
+// ColorPickerSetCompact: R_TRUE hides the code and the numbers: only the square, the strips and the swatches.
+func ColorPickerSetCompact(picker ID, compact int) {
+	C.Rcolor_picker_set_compact(C.Rid(picker), C.int(compact))
+}
+
+// ColorRgbToHsv: Red, green, blue (0..1) to hue (0..360), saturation, value (0..1).
+func ColorRgbToHsv(r float32, g float32, b float32) (hue float32, saturation float32, value float32) {
+	var hue_ C.float
+	var saturation_ C.float
+	var value_ C.float
+	C.Rcolor_rgb_to_hsv(C.float(r), C.float(g), C.float(b), &hue_, &saturation_, &value_)
+	hue = float32(hue_)
+	saturation = float32(saturation_)
+	value = float32(value_)
+	return
+}
+
+func ColorHsvToRgb(hue float32, saturation float32, value float32) (r float32, g float32, b float32) {
+	var r_ C.float
+	var g_ C.float
+	var b_ C.float
+	C.Rcolor_hsv_to_rgb(C.float(hue), C.float(saturation), C.float(value), &r_, &g_, &b_)
+	r = float32(r_)
+	g = float32(g_)
+	b = float32(b_)
+	return
+}
+
+func TimelineCreate() ID {
+	return ID(C.Rtimeline_create())
+}
+
+// TimelineSetDuration: Length of the sequence. The view and the playhead stay within 0 .. duration.
+func TimelineSetDuration(timeline ID, seconds float64) {
+	C.Rtimeline_set_duration(C.Rid(timeline), C.double(seconds))
+}
+
+func TimelineGetDuration(timeline ID) float64 {
+	return float64(C.Rtimeline_get_duration(C.Rid(timeline)))
+}
+
+// TimelineSetTime: Moves the playhead. The time callback is not called.
+func TimelineSetTime(timeline ID, seconds float64) {
+	C.Rtimeline_set_time(C.Rid(timeline), C.double(seconds))
+}
+
+func TimelineGetTime(timeline ID) float64 {
+	return float64(C.Rtimeline_get_time(C.Rid(timeline)))
+}
+
+// TimelineSetFrameRate: Frames per second. With a frame rate the ruler counts in frames ("2:12" is second 2,
+// frame 12) and everything snaps to frames; 0 (default) counts in seconds and snaps to the marks of the
+// ruler.
+func TimelineSetFrameRate(timeline ID, frames_per_second float64) {
+	C.Rtimeline_set_frame_rate(C.Rid(timeline), C.double(frames_per_second))
+}
+
+func TimelineGetFrameRate(timeline ID) float64 {
+	return float64(C.Rtimeline_get_frame_rate(C.Rid(timeline)))
+}
+
+// TimelineSetSnapping: R_FALSE lets items be placed anywhere (holding Alt while dragging does it for one
+// move).
+func TimelineSetSnapping(timeline ID, enabled int) {
+	C.Rtimeline_set_snapping(C.Rid(timeline), C.int(enabled))
+}
+
+// TimelineSetView: The part of the sequence that is shown. Zooming is showing less.
+func TimelineSetView(timeline ID, start float64, end float64) {
+	C.Rtimeline_set_view(C.Rid(timeline), C.double(start), C.double(end))
+}
+
+func TimelineGetView(timeline ID) (start float64, end float64) {
+	var start_ C.double
+	var end_ C.double
+	C.Rtimeline_get_view(C.Rid(timeline), &start_, &end_)
+	start = float64(start_)
+	end = float64(end_)
+	return
+}
+
+// TimelineSetPlaying: Makes the playhead run by itself, at the speed of the clock, calling the time callback
+// at each frame; at the end it stops, or starts again with Rtimeline_set_loop.
+func TimelineSetPlaying(timeline ID, playing int) {
+	C.Rtimeline_set_playing(C.Rid(timeline), C.int(playing))
+}
+
+func TimelineIsPlaying(timeline ID) int {
+	return int(C.Rtimeline_is_playing(C.Rid(timeline)))
+}
+
+func TimelineSetLoop(timeline ID, loop int) {
+	C.Rtimeline_set_loop(C.Rid(timeline), C.int(loop))
+}
+
+// TimelineAddTrack: Returns: The track, or 0. Tracks are shown in the order they were added.
+func TimelineAddTrack(timeline ID, name string) int {
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	return int(C.Rtimeline_add_track(C.Rid(timeline), name_))
+}
+
+// TimelineRemoveTrack: Removes a track and everything on it.
+func TimelineRemoveTrack(timeline ID, track int) {
+	C.Rtimeline_remove_track(C.Rid(timeline), C.int(track))
+}
+
+func TimelineGetTrackCount(timeline ID) int {
+	return int(C.Rtimeline_get_track_count(C.Rid(timeline)))
+}
+
+// TimelineGetTrack: Returns: The index-th track from the top, or 0.
+func TimelineGetTrack(timeline ID, index int) int {
+	return int(C.Rtimeline_get_track(C.Rid(timeline), C.int(index)))
+}
+
+func TimelineSetTrackName(timeline ID, track int, name string) {
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	C.Rtimeline_set_track_name(C.Rid(timeline), C.int(track), name_)
+}
+
+func TimelineGetTrackName(timeline ID, track int) string {
+	return C.GoString(C.Rtimeline_get_track_name(C.Rid(timeline), C.int(track)))
+}
+
+// TimelineSetTrackColor: Color of the clips and keys of the track that have none of their own.
+func TimelineSetTrackColor(timeline ID, track int, r float32, g float32, b float32) {
+	C.Rtimeline_set_track_color(C.Rid(timeline), C.int(track), C.float(r), C.float(g), C.float(b))
+}
+
+// TimelineSetTrackHeight: Height of the track in logical units; 0 = the default.
+func TimelineSetTrackHeight(timeline ID, track int, height float32) {
+	C.Rtimeline_set_track_height(C.Rid(timeline), C.int(track), C.float(height))
+}
+
+// TimelineSetTrackLocked: A locked track shows its items but does not let the user change them.
+func TimelineSetTrackLocked(timeline ID, track int, locked int) {
+	C.Rtimeline_set_track_locked(C.Rid(timeline), C.int(track), C.int(locked))
+}
+
+// TimelineSetTrackMuted: A muted track is drawn dimmed; what muting means is up to the application.
+func TimelineSetTrackMuted(timeline ID, track int, muted int) {
+	C.Rtimeline_set_track_muted(C.Rid(timeline), C.int(track), C.int(muted))
+}
+
+func TimelineIsTrackMuted(timeline ID, track int) int {
+	return int(C.Rtimeline_is_track_muted(C.Rid(timeline), C.int(track)))
+}
+
+// TimelineAddClip: Returns: The clip, or 0 when the track does not exist.
+func TimelineAddClip(timeline ID, track int, start float64, length float64, label string) int {
+	label_ := C.CString(label)
+	defer C.free(unsafe.Pointer(label_))
+	return int(C.Rtimeline_add_clip(C.Rid(timeline), C.int(track), C.double(start), C.double(length), label_))
+}
+
+// TimelineAddKey: Returns: The key, or 0.
+func TimelineAddKey(timeline ID, track int, time float64) int {
+	return int(C.Rtimeline_add_key(C.Rid(timeline), C.int(track), C.double(time)))
+}
+
+// TimelineAddMarker: A named moment of the whole sequence, shown on the ruler and across the tracks.
+func TimelineAddMarker(timeline ID, time float64, label string) int {
+	label_ := C.CString(label)
+	defer C.free(unsafe.Pointer(label_))
+	return int(C.Rtimeline_add_marker(C.Rid(timeline), C.double(time), label_))
+}
+
+func TimelineRemoveItem(timeline ID, item int) {
+	C.Rtimeline_remove_item(C.Rid(timeline), C.int(item))
+}
+
+// TimelineClear: Removes every track, clip, key and marker.
+func TimelineClear(timeline ID) {
+	C.Rtimeline_clear(C.Rid(timeline))
+}
+
+func TimelineGetItemType(timeline ID, item int) RTimelineItem {
+	return RTimelineItem(C.Rtimeline_get_item_type(C.Rid(timeline), C.int(item)))
+}
+
+// TimelineGetItemTrack: Returns: The track of a clip or of a key; 0 for a marker.
+func TimelineGetItemTrack(timeline ID, item int) int {
+	return int(C.Rtimeline_get_item_track(C.Rid(timeline), C.int(item)))
+}
+
+func TimelineGetItemStart(timeline ID, item int) float64 {
+	return float64(C.Rtimeline_get_item_start(C.Rid(timeline), C.int(item)))
+}
+
+// TimelineGetItemLength: Returns: The length of a clip; 0 for a key or a marker.
+func TimelineGetItemLength(timeline ID, item int) float64 {
+	return float64(C.Rtimeline_get_item_length(C.Rid(timeline), C.int(item)))
+}
+
+// TimelineSetItem: Moves an item: to another track (0 = keep), another start, another length (clips; negative
+// = keep).
+func TimelineSetItem(timeline ID, item int, track int, start float64, length float64) {
+	C.Rtimeline_set_item(C.Rid(timeline), C.int(item), C.int(track), C.double(start), C.double(length))
+}
+
+func TimelineSetItemLabel(timeline ID, item int, label string) {
+	label_ := C.CString(label)
+	defer C.free(unsafe.Pointer(label_))
+	C.Rtimeline_set_item_label(C.Rid(timeline), C.int(item), label_)
+}
+
+func TimelineGetItemLabel(timeline ID, item int) string {
+	return C.GoString(C.Rtimeline_get_item_label(C.Rid(timeline), C.int(item)))
+}
+
+func TimelineSetItemColor(timeline ID, item int, r float32, g float32, b float32) {
+	C.Rtimeline_set_item_color(C.Rid(timeline), C.int(item), C.float(r), C.float(g), C.float(b))
+}
+
+func TimelineGetItemCount(timeline ID) int {
+	return int(C.Rtimeline_get_item_count(C.Rid(timeline)))
+}
+
+// TimelineGetItem: Returns: The index-th item, in the order they were added, or 0.
+func TimelineGetItem(timeline ID, index int) int {
+	return int(C.Rtimeline_get_item(C.Rid(timeline), C.int(index)))
+}
+
+// TimelineSelect: Selects an item, alone or (add) with the ones already selected.
+func TimelineSelect(timeline ID, item int, add int) {
+	C.Rtimeline_select(C.Rid(timeline), C.int(item), C.int(add))
+}
+
+func TimelineClearSelection(timeline ID) {
+	C.Rtimeline_clear_selection(C.Rid(timeline))
+}
+
+func TimelineIsSelected(timeline ID, item int) int {
+	return int(C.Rtimeline_is_selected(C.Rid(timeline), C.int(item)))
+}
+
+func TimelineGetSelectionCount(timeline ID) int {
+	return int(C.Rtimeline_get_selection_count(C.Rid(timeline)))
+}
+
+func TimelineGetSelected(timeline ID, index int) int {
+	return int(C.Rtimeline_get_selected(C.Rid(timeline), C.int(index)))
+}
+
+func NodeGraphCreate() ID {
+	return ID(C.Rnode_graph_create())
+}
+
+// NodeGraphAddNode: x,y Top-left corner of the node, in the units of the canvas.
+func NodeGraphAddNode(graph ID, title string, x float32, y float32) int {
+	title_ := C.CString(title)
+	defer C.free(unsafe.Pointer(title_))
+	return int(C.Rnode_graph_add_node(C.Rid(graph), title_, C.float(x), C.float(y)))
+}
+
+// NodeGraphRemoveNode: Removes a node, its pins, their links, and the widget it holds.
+func NodeGraphRemoveNode(graph ID, node int) {
+	C.Rnode_graph_remove_node(C.Rid(graph), C.int(node))
+}
+
+func NodeGraphClear(graph ID) {
+	C.Rnode_graph_clear(C.Rid(graph))
+}
+
+func NodeGraphGetNodeCount(graph ID) int {
+	return int(C.Rnode_graph_get_node_count(C.Rid(graph)))
+}
+
+func NodeGraphGetNode(graph ID, index int) int {
+	return int(C.Rnode_graph_get_node(C.Rid(graph), C.int(index)))
+}
+
+func NodeGraphSetNodeTitle(graph ID, node int, title string) {
+	title_ := C.CString(title)
+	defer C.free(unsafe.Pointer(title_))
+	C.Rnode_graph_set_node_title(C.Rid(graph), C.int(node), title_)
+}
+
+func NodeGraphGetNodeTitle(graph ID, node int) string {
+	return C.GoString(C.Rnode_graph_get_node_title(C.Rid(graph), C.int(node)))
+}
+
+func NodeGraphSetNodePosition(graph ID, node int, x float32, y float32) {
+	C.Rnode_graph_set_node_position(C.Rid(graph), C.int(node), C.float(x), C.float(y))
+}
+
+func NodeGraphGetNodePosition(graph ID, node int) (x float32, y float32) {
+	var x_ C.float
+	var y_ C.float
+	C.Rnode_graph_get_node_position(C.Rid(graph), C.int(node), &x_, &y_)
+	x = float32(x_)
+	y = float32(y_)
+	return
+}
+
+// NodeGraphGetNodeSize: Size of a node on the canvas: Raven works it out from its title, its pins and its
+// content.
+func NodeGraphGetNodeSize(graph ID, node int) (width float32, height float32) {
+	var width_ C.float
+	var height_ C.float
+	C.Rnode_graph_get_node_size(C.Rid(graph), C.int(node), &width_, &height_)
+	width = float32(width_)
+	height = float32(height_)
+	return
+}
+
+// NodeGraphSetNodeColor: Color of the header of the node; without one it takes the accent color of the theme.
+func NodeGraphSetNodeColor(graph ID, node int, r float32, g float32, b float32) {
+	C.Rnode_graph_set_node_color(C.Rid(graph), C.int(node), C.float(r), C.float(g), C.float(b))
+}
+
+// NodeGraphSetNodeContent: Puts a widget inside the node, under its pins: the graph owns it from now on.
+// R_INVALID_ID removes (and deletes) the one it had.
+func NodeGraphSetNodeContent(graph ID, node int, widget ID) {
+	C.Rnode_graph_set_node_content(C.Rid(graph), C.int(node), C.Rid(widget))
+}
+
+func NodeGraphGetNodeContent(graph ID, node int) ID {
+	return ID(C.Rnode_graph_get_node_content(C.Rid(graph), C.int(node)))
+}
+
+// NodeGraphSetNodeName: Name of the node, the `Name` of its XML element: what <Link From="name.pin"> and
+// Rnode_graph_find_node look for. Not shown.
+func NodeGraphSetNodeName(graph ID, node int, name string) {
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	C.Rnode_graph_set_node_name(C.Rid(graph), C.int(node), name_)
+}
+
+func NodeGraphGetNodeName(graph ID, node int) string {
+	return C.GoString(C.Rnode_graph_get_node_name(C.Rid(graph), C.int(node)))
+}
+
+// NodeGraphFindNode: Returns: The node of that name, or 0.
+func NodeGraphFindNode(graph ID, name string) int {
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	return int(C.Rnode_graph_find_node(C.Rid(graph), name_))
+}
+
+// NodeGraphAddInput: type Free text, or NULL for a pin that links to any type. Returns: The pin, or 0.
+func NodeGraphAddInput(graph ID, node int, label string, type_ string) int {
+	label_ := C.CString(label)
+	defer C.free(unsafe.Pointer(label_))
+	type__ := C.CString(type_)
+	defer C.free(unsafe.Pointer(type__))
+	return int(C.Rnode_graph_add_input(C.Rid(graph), C.int(node), label_, type__))
+}
+
+func NodeGraphAddOutput(graph ID, node int, label string, type_ string) int {
+	label_ := C.CString(label)
+	defer C.free(unsafe.Pointer(label_))
+	type__ := C.CString(type_)
+	defer C.free(unsafe.Pointer(type__))
+	return int(C.Rnode_graph_add_output(C.Rid(graph), C.int(node), label_, type__))
+}
+
+func NodeGraphRemovePin(graph ID, pin int) {
+	C.Rnode_graph_remove_pin(C.Rid(graph), C.int(pin))
+}
+
+func NodeGraphGetPinNode(graph ID, pin int) int {
+	return int(C.Rnode_graph_get_pin_node(C.Rid(graph), C.int(pin)))
+}
+
+func NodeGraphIsPinOutput(graph ID, pin int) int {
+	return int(C.Rnode_graph_is_pin_output(C.Rid(graph), C.int(pin)))
+}
+
+func NodeGraphGetPinLabel(graph ID, pin int) string {
+	return C.GoString(C.Rnode_graph_get_pin_label(C.Rid(graph), C.int(pin)))
+}
+
+func NodeGraphGetPinType(graph ID, pin int) string {
+	return C.GoString(C.Rnode_graph_get_pin_type(C.Rid(graph), C.int(pin)))
+}
+
+// NodeGraphSetPinName: Name of the pin for Rnode_graph_find_pin and for the links of XML; a pin without one
+// answers to its label.
+func NodeGraphSetPinName(graph ID, pin int, name string) {
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	C.Rnode_graph_set_pin_name(C.Rid(graph), C.int(pin), name_)
+}
+
+// NodeGraphFindPin: Returns: The pin of a node with that name (or label), or 0.
+func NodeGraphFindPin(graph ID, node int, name string) int {
+	name_ := C.CString(name)
+	defer C.free(unsafe.Pointer(name_))
+	return int(C.Rnode_graph_find_pin(C.Rid(graph), C.int(node), name_))
+}
+
+// NodeGraphGetPinPosition: Where a pin is on the canvas (the middle of its dot).
+func NodeGraphGetPinPosition(graph ID, pin int) (x float32, y float32) {
+	var x_ C.float
+	var y_ C.float
+	C.Rnode_graph_get_pin_position(C.Rid(graph), C.int(pin), &x_, &y_)
+	x = float32(x_)
+	y = float32(y_)
+	return
+}
+
+// NodeGraphGetInput: Returns: The index-th input (or output) of a node, or 0.
+func NodeGraphGetInput(graph ID, node int, index int) int {
+	return int(C.Rnode_graph_get_input(C.Rid(graph), C.int(node), C.int(index)))
+}
+
+func NodeGraphGetOutput(graph ID, node int, index int) int {
+	return int(C.Rnode_graph_get_output(C.Rid(graph), C.int(node), C.int(index)))
+}
+
+// NodeGraphSetTypeColor: Color of the pins of a type and of the links between them.
+func NodeGraphSetTypeColor(graph ID, type_ string, r float32, g float32, b float32) {
+	type__ := C.CString(type_)
+	defer C.free(unsafe.Pointer(type__))
+	C.Rnode_graph_set_type_color(C.Rid(graph), type__, C.float(r), C.float(g), C.float(b))
+}
+
+// NodeGraphConnect: Links an output to an input, as the user does by dragging. The connect callback is not
+// asked. Returns: The link; 0 when the pins cannot be linked (two inputs, the same node, different types).
+func NodeGraphConnect(graph ID, output_pin int, input_pin int) int {
+	return int(C.Rnode_graph_connect(C.Rid(graph), C.int(output_pin), C.int(input_pin)))
+}
+
+func NodeGraphDisconnect(graph ID, link int) {
+	C.Rnode_graph_disconnect(C.Rid(graph), C.int(link))
+}
+
+func NodeGraphGetLinkCount(graph ID) int {
+	return int(C.Rnode_graph_get_link_count(C.Rid(graph)))
+}
+
+func NodeGraphGetLink(graph ID, index int) int {
+	return int(C.Rnode_graph_get_link(C.Rid(graph), C.int(index)))
+}
+
+func NodeGraphGetLinkOutput(graph ID, link int) int {
+	return int(C.Rnode_graph_get_link_output(C.Rid(graph), C.int(link)))
+}
+
+func NodeGraphGetLinkInput(graph ID, link int) int {
+	return int(C.Rnode_graph_get_link_input(C.Rid(graph), C.int(link)))
+}
+
+// NodeGraphGetInputLink: Returns: The link that arrives at an input pin, or 0.
+func NodeGraphGetInputLink(graph ID, input_pin int) int {
+	return int(C.Rnode_graph_get_input_link(C.Rid(graph), C.int(input_pin)))
+}
+
+// NodeGraphSetView: What the middle of the widget shows: a point of the canvas, and how large (1 = one unit
+// per logical unit).
+func NodeGraphSetView(graph ID, center_x float32, center_y float32, zoom float32) {
+	C.Rnode_graph_set_view(C.Rid(graph), C.float(center_x), C.float(center_y), C.float(zoom))
+}
+
+func NodeGraphGetView(graph ID) (center_x float32, center_y float32, zoom float32) {
+	var center_x_ C.float
+	var center_y_ C.float
+	var zoom_ C.float
+	C.Rnode_graph_get_view(C.Rid(graph), &center_x_, &center_y_, &zoom_)
+	center_x = float32(center_x_)
+	center_y = float32(center_y_)
+	zoom = float32(zoom_)
+	return
+}
+
+// NodeGraphToCanvas: Converts a point of the widget (from its corner, as in the events) to the canvas, and
+// back, with the view as it is shown now.
+func NodeGraphToCanvas(graph ID, x float32, y float32) (canvas_x float32, canvas_y float32) {
+	var canvas_x_ C.float
+	var canvas_y_ C.float
+	C.Rnode_graph_to_canvas(C.Rid(graph), C.float(x), C.float(y), &canvas_x_, &canvas_y_)
+	canvas_x = float32(canvas_x_)
+	canvas_y = float32(canvas_y_)
+	return
+}
+
+func NodeGraphFromCanvas(graph ID, canvas_x float32, canvas_y float32) (x float32, y float32) {
+	var x_ C.float
+	var y_ C.float
+	C.Rnode_graph_from_canvas(C.Rid(graph), C.float(canvas_x), C.float(canvas_y), &x_, &y_)
+	x = float32(x_)
+	y = float32(y_)
+	return
+}
+
+// NodeGraphFrameAll: Moves and zooms so that every node shows.
+func NodeGraphFrameAll(graph ID) {
+	C.Rnode_graph_frame_all(C.Rid(graph))
+}
+
+// NodeGraphSetGridVisible: R_FALSE hides the grid of dots (shown by default).
+func NodeGraphSetGridVisible(graph ID, visible int) {
+	C.Rnode_graph_set_grid_visible(C.Rid(graph), C.int(visible))
+}
+
+// NodeGraphSetFlowVisible: The pulses of light that run along the links, from output to input. By default
+// they run while the pointer is over the graph, and the window rests the rest of the time. R_TRUE makes them
+// run all the time (the window then draws without pause); R_FALSE stops them.
+func NodeGraphSetFlowVisible(graph ID, visible int) {
+	C.Rnode_graph_set_flow_visible(C.Rid(graph), C.int(visible))
+}
+
+// NodeGraphSetReadOnly: R_TRUE: the user can look but not move, link or delete.
+func NodeGraphSetReadOnly(graph ID, read_only int) {
+	C.Rnode_graph_set_read_only(C.Rid(graph), C.int(read_only))
+}
+
+func NodeGraphSelectNode(graph ID, node int, add int) {
+	C.Rnode_graph_select_node(C.Rid(graph), C.int(node), C.int(add))
+}
+
+func NodeGraphClearSelection(graph ID) {
+	C.Rnode_graph_clear_selection(C.Rid(graph))
+}
+
+func NodeGraphIsNodeSelected(graph ID, node int) int {
+	return int(C.Rnode_graph_is_node_selected(C.Rid(graph), C.int(node)))
+}
+
+func NodeGraphGetSelectionCount(graph ID) int {
+	return int(C.Rnode_graph_get_selection_count(C.Rid(graph)))
+}
+
+func NodeGraphGetSelectedNode(graph ID, index int) int {
+	return int(C.Rnode_graph_get_selected_node(C.Rid(graph), C.int(index)))
 }
 
 // DialogClose: Closes the dialog that contains a widget (the content itself or anything inside it: the button
@@ -2693,6 +3728,22 @@ func XmlSetBasePath(path string) {
 	C.Rxml_set_base_path(path_)
 }
 
+// XmlSetLiveReload: Turns live reload on or off. It is on by default; the environment variable
+// RAVEN_LIVE_RELOAD=0 turns it off without rebuilding. When off, files are never looked at again.
+func XmlSetLiveReload(enabled int) {
+	C.Rxml_set_live_reload(C.int(enabled))
+}
+
+func XmlGetLiveReload() int {
+	return int(C.Rxml_get_live_reload())
+}
+
+// XmlCheckFiles: Looks at the files now, without waiting for the next look (there are five per second), even
+// when live reload is off. Returns: The number of files found changed.
+func XmlCheckFiles() int {
+	return int(C.Rxml_check_files())
+}
+
 // XmlRegisterWidgets: Reads the <Widget Name="..."> declarations of a document (its root, or the children of
 // a <Widgets> root) so that the tags they declare can be used in the documents loaded afterwards. Returns:
 // The number of tags declared.
@@ -2727,6 +3778,27 @@ func XmlGetRegisteredWidgetCount() int {
 
 func XmlGetRegisteredWidgetName(index int) string {
 	return C.GoString(C.Rxml_get_registered_widget_name(C.int(index)))
+}
+
+func XmlUnregisterTag(tag string) {
+	tag_ := C.CString(tag)
+	defer C.free(unsafe.Pointer(tag_))
+	C.Rxml_unregister_tag(tag_)
+}
+
+func XmlIsTagRegistered(tag string) int {
+	tag_ := C.CString(tag)
+	defer C.free(unsafe.Pointer(tag_))
+	return int(C.Rxml_is_tag_registered(tag_))
+}
+
+// XmlResolvePath: The path of a file named in a document: as the attributes Source of Raven read it, relative
+// to the folder of the document being loaded (while it loads), else to the base path. For the attributes of
+// the tags made by code that name files. Returns: The path; valid until the next call.
+func XmlResolvePath(path string) string {
+	path_ := C.CString(path)
+	defer C.free(unsafe.Pointer(path_))
+	return C.GoString(C.Rxml_resolve_path(path_))
 }
 
 // WidgetSetAttribute: Sets a property from text, with the names and value syntax of the XML attributes. Handy
@@ -2972,21 +4044,26 @@ func XmlGetAttributeCount(tag string) int {
 // Rmemory_get_stats, Rset_frame_callback, Rtask_post, Rtask_run_async, Rparallel_for, Rtimer_create
 // Raction_bind, Raction_set_default_handler, Rerror_get_last, Rerror_set_callback, Rwindow_get_frame_stats
 // Rwindow_set_close_callback, Rwindow_set_resize_callback, Rwindow_set_drop_callback
-// Rwindow_set_user_handle, Rwindow_get_user_handle, Rwindow_get_native_handle, Rwindow_capture, Rpixels_free
-// Rwindow_inject_drop, Rtexture_create_from_pixels, Rtexture_update, Rwidget_set_user_handle
-// Rwidget_get_user_handle, Rwidget_set_event_callback, Rwidget_set_drop_callback
-// Rtab_view_set_changed_callback, Rexpander_set_changed_callback, Rbutton_set_clicked_callback
-// Rcheckbox_set_changed_callback, Rslider_set_changed_callback, Rtext_input_set_changed_callback
-// Rtext_input_set_committed_callback, Rspin_box_set_changed_callback, Rcombo_box_set_changed_callback
-// Rlist_view_set_virtual_items, Rlist_view_set_selection_changed_callback, Rlist_view_set_activated_callback
-// Rtree_item_set_user_handle, Rtree_item_get_user_handle, Rtree_view_set_selection_changed_callback
-// Rtree_view_set_activated_callback, Rmenu_item_set_clicked_callback, Rlanguage_register, Rlanguage_get
-// Rtext_editor_set_completion_callback, Rtext_editor_set_changed_callback, Rdock_area_set_close_callback
-// Rdock_area_set_changed_callback, Risland_set_changed_callback, Rdialog_open, Rfile_dialog_open
-// Rfile_dialog_save, Rfile_dialog_select_folder, Rfile_read, Rfile_browser_set_filters
-// Rfile_browser_set_accepted_callback, Rfile_browser_set_cancelled_callback
+// Rwindow_set_user_handle, Rwindow_get_user_handle, Rwindow_get_native_handle, Rwindow_capture
+// Rwindow_inject_drop, Rtexture_create_from_pixels, Rtexture_update, Rimage_decode, Rpixels_free
+// Rwidget_set_user_handle, Rwidget_get_user_handle, Rwidget_set_destroy_callback, Rwidget_set_event_callback
+// Rwidget_set_drop_callback, Rtab_view_set_changed_callback, Rexpander_set_changed_callback
+// Rlabel_set_link_callback, Rbutton_set_clicked_callback, Rcheckbox_set_changed_callback
+// Rslider_set_changed_callback, Rtext_input_set_changed_callback, Rtext_input_set_committed_callback
+// Rspin_box_set_changed_callback, Rcombo_box_set_changed_callback, Rlist_view_set_virtual_items
+// Rlist_view_set_selection_changed_callback, Rlist_view_set_activated_callback, Rtree_item_set_user_handle
+// Rtree_item_get_user_handle, Rtree_view_set_selection_changed_callback, Rtree_view_set_activated_callback
+// Rmenu_item_set_clicked_callback, Rlanguage_register, Rlanguage_get, Rtext_editor_set_completion_callback
+// Rtext_editor_set_changed_callback, Rdock_area_set_close_callback, Rdock_area_set_changed_callback
+// Risland_set_changed_callback, Rcolor_picker_set_changed_callback, Rtimeline_set_time_callback
+// Rtimeline_set_changed_callback, Rtimeline_set_selection_callback, Rtimeline_set_activated_callback
+// Rtimeline_set_removed_callback, Rnode_graph_set_node_user_data, Rnode_graph_get_node_user_data
+// Rnode_graph_set_connect_callback, Rnode_graph_set_linked_callback, Rnode_graph_set_unlinked_callback
+// Rnode_graph_set_moved_callback, Rnode_graph_set_selection_callback, Rnode_graph_set_removed_callback
+// Rdialog_open, Rfile_dialog_open, Rfile_dialog_save, Rfile_dialog_select_folder, Rfile_read
+// Rfile_browser_set_filters, Rfile_browser_set_accepted_callback, Rfile_browser_set_cancelled_callback
 // Rfile_browser_set_selection_changed_callback, Rviewport_set_draw_callback, Rviewport_get_native_handle
 // Rviewport_set_resize_callback, Rcustom_set_paint_callback, Rcustom_set_measure_callback, Rdraw_rect
-// Rdraw_rect_outline, Rdraw_circle, Rdraw_line, Rdraw_triangle, Rdraw_image, Rdraw_text, Rdraw_glass
-// Rdraw_spring, Rspring_kick, Rspring_set, Rdraw_push_clip_rect, Rdraw_pop_clip_rect, Rxml_document_parse
-// Rxml_get_attribute_info
+// Rdraw_rect_outline, Rdraw_circle, Rdraw_line, Rdraw_curve, Rdraw_triangle, Rdraw_image, Rdraw_text
+// Rdraw_glass, Rdraw_spring, Rspring_kick, Rspring_set, Rdraw_push_clip_rect, Rdraw_pop_clip_rect
+// Rxml_set_reload_callback, Rxml_register_tag, Rxml_document_parse, Rxml_get_attribute_info

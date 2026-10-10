@@ -88,6 +88,50 @@ namespace Raven
         /// title bars.
         /// </summary>
         R_WINDOW_CUSTOM_HEADER = 0x0010,
+        /// <summary>
+        /// The window can be seen through: where the application draws nothing
+        /// opaque, what is behind the window on the screen shows (the desktop,
+        /// the other applications), not a color of the application. Glass then
+        /// looks at the screen itself. What the OS does to what shows through is
+        /// chosen with Rwindow_set_backdrop. See RBackdrop for what each window
+        /// system can do.
+        /// </summary>
+        R_WINDOW_TRANSPARENT = 0x0020,
+    }
+
+    /// <summary>
+    /// What is seen behind a window created with R_WINDOW_TRANSPARENT.
+    /// 
+    ///   Windows 11          every value
+    ///   Windows 10          TRANSPARENT, BLUR, ACRYLIC (MICA gives ACRYLIC)
+    ///   X11                 TRANSPARENT with any compositing manager; BLUR where
+    ///                       the compositor blurs on request (KWin; picom and
+    ///                       others with their own settings); ACRYLIC and MICA
+    ///                       give BLUR
+    ///   no compositor       nothing: the window stays opaque
+    /// </summary>
+    public enum RBackdrop : int
+    {
+        /// <summary>
+        /// Opaque: the window color, or the wallpaper of the theme.
+        /// </summary>
+        R_BACKDROP_NONE = 0x0400,
+        /// <summary>
+        /// The screen behind the window, as it is.
+        /// </summary>
+        R_BACKDROP_TRANSPARENT = 0x0401,
+        /// <summary>
+        /// The screen behind the window, blurred by the OS.
+        /// </summary>
+        R_BACKDROP_BLUR = 0x0402,
+        /// <summary>
+        /// Blurred, tinted and grained by the OS (the acrylic of Windows).
+        /// </summary>
+        R_BACKDROP_ACRYLIC = 0x0403,
+        /// <summary>
+        /// A soft tint taken from the wallpaper of the desktop (the mica of Windows 11).
+        /// </summary>
+        R_BACKDROP_MICA = 0x0404,
     }
 
     public enum RWindowSystem : int
@@ -437,6 +481,20 @@ namespace Raven
         /// Track of a switch that is on.
         /// </summary>
         R_COLOR_SWITCH = 0x011E,
+        /// <summary>
+        /// What went well, what needs attention, what is wrong or destroys something (markers, badges, classes).
+        /// </summary>
+        R_COLOR_SUCCESS = 0x011F,
+        R_COLOR_WARNING = 0x0120,
+        R_COLOR_DANGER = 0x0121,
+        /// <summary>
+        /// Links of formatted text.
+        /// </summary>
+        R_COLOR_LINK = 0x0122,
+        /// <summary>
+        /// Background of code in formatted text.
+        /// </summary>
+        R_COLOR_CODE = 0x0123,
     }
 
     /// <summary>
@@ -476,6 +534,32 @@ namespace Raven
         /// Corner radius of menus, drop-down lists and tooltips.
         /// </summary>
         R_METRIC_POPUP_RADIUS = 0x014D,
+        /// <summary>
+        /// The glass of the theme: each one multiplies what the material gives,
+        /// 1 = unchanged. Frost (how much is blurred), refraction (how far the rim
+        /// bends what is behind), saturation (of what is seen through), rim (the
+        /// light it catches) and shadow (the one it drops).
+        /// </summary>
+        R_METRIC_GLASS_FROST = 0x014E,
+        R_METRIC_GLASS_REFRACTION = 0x014F,
+        R_METRIC_GLASS_SATURATION = 0x0150,
+        R_METRIC_GLASS_RIM = 0x0151,
+        R_METRIC_GLASS_SHADOW = 0x0152,
+        /// <summary>
+        /// Radius of the blur of a BackgroundBlur that was not given one.
+        /// </summary>
+        R_METRIC_BLUR_RADIUS = 0x0153,
+    }
+
+    /// <summary>
+    /// The styles of a font (Rfont_get_variant).
+    /// </summary>
+    public enum RFontStyle : int
+    {
+        R_FONT_REGULAR = 0x0420,
+        R_FONT_BOLD = 0x0421,
+        R_FONT_ITALIC = 0x0422,
+        R_FONT_BOLD_ITALIC = 0x0423,
     }
 
     public enum RFilterType : int
@@ -592,6 +676,22 @@ namespace Raven
         /// Explorer of the files of the computer.
         /// </summary>
         R_WIDGET_FILE_BROWSER = 0x0224,
+        /// <summary>
+        /// One child over a blurred view of what is behind it.
+        /// </summary>
+        R_WIDGET_BACKGROUND_BLUR = 0x0225,
+        /// <summary>
+        /// Chooses a color: hue, saturation, value, opacity, by hand or by numbers.
+        /// </summary>
+        R_WIDGET_COLOR_PICKER = 0x0226,
+        /// <summary>
+        /// Tracks of clips and keys along a time ruler.
+        /// </summary>
+        R_WIDGET_TIMELINE = 0x0227,
+        /// <summary>
+        /// Nodes linked by wires, on a canvas that pans and zooms.
+        /// </summary>
+        R_WIDGET_NODE_GRAPH = 0x0228,
     }
 
     public enum RHAlign : int
@@ -668,6 +768,38 @@ namespace Raven
     {
         R_HORIZONTAL = 0x0270,
         R_VERTICAL = 0x0271,
+    }
+
+    /// <summary>
+    /// The looks of a R_WIDGET_BACKGROUND_BLUR. The first three are drawn by
+    /// Raven from what the window shows behind the widget; the last one is the
+    /// blur of the OS, which sees what is behind the window itself.
+    /// </summary>
+    public enum RBlurStyle : int
+    {
+        /// <summary>
+        /// What is behind, out of focus, and nothing else (a Gaussian blur).
+        /// </summary>
+        R_BLUR_PLAIN = 0x0440,
+        /// <summary>
+        /// Frosted: blurred, its colors a little stronger, under a veil of the
+        /// panel color of the theme, a fine grain and a hairline. The default.
+        /// </summary>
+        R_BLUR_FROSTED = 0x0441,
+        /// <summary>
+        /// Glass: a slab that bends what is behind at its rim and catches the
+        /// light, as the glass materials do (RMaterial); the radius says how
+        /// frosted it is.
+        /// </summary>
+        R_BLUR_GLASS = 0x0442,
+        /// <summary>
+        /// Native: the widget opens the window there, and what shows is what the
+        /// OS puts behind the window (Rwindow_set_backdrop: the blurred desktop,
+        /// acrylic, mica), under a light veil. It needs a window created with
+        /// R_WINDOW_TRANSPARENT that the OS could make see-through; anywhere
+        /// else it is drawn as R_BLUR_FROSTED. The radius is the one of the OS.
+        /// </summary>
+        R_BLUR_NATIVE = 0x0443,
     }
 
     public enum RTextAlign : int
@@ -767,6 +899,13 @@ namespace Raven
         /// Markup that holds JavaScript in script elements and CSS in style elements (HTML).
         /// </summary>
         R_LANGUAGE_EMBEDS = 0x0040,
+        /// <summary>
+        /// Formatted text written in Markdown: titles, strong and emphasized
+        /// text, code, links, lists. The editor shows the text as it is written,
+        /// marks included, with strong text in bold, emphasized text in italic
+        /// and titles in bold: what will be formatted is seen while typing.
+        /// </summary>
+        R_LANGUAGE_FORMATTED_TEXT = 0x0080,
     }
 
     /// <summary>
@@ -800,6 +939,13 @@ namespace Raven
         /// A line for the preprocessor, an annotation, a declaration of a document.
         /// </summary>
         R_TOKEN_DIRECTIVE = 0x03AA,
+        /// <summary>
+        /// Formatted text (the Markdown language): a title, strong text, emphasized text, a link.
+        /// </summary>
+        R_TOKEN_HEADING = 0x03AB,
+        R_TOKEN_STRONG = 0x03AC,
+        R_TOKEN_EMPHASIS = 0x03AD,
+        R_TOKEN_LINK = 0x03AE,
     }
 
     /// <summary>
@@ -838,6 +984,17 @@ namespace Raven
         /// Behind the same tabs as the other panel.
         /// </summary>
         R_DOCK_TAB = 0x0364,
+    }
+
+    /// <summary>
+    /// What an item of a timeline is.
+    /// </summary>
+    public enum RTimelineItem : int
+    {
+        R_TIMELINE_NONE = 0x0460,
+        R_TIMELINE_CLIP = 0x0461,
+        R_TIMELINE_KEY = 0x0462,
+        R_TIMELINE_MARKER = 0x0463,
     }
 
     [Flags]
@@ -1064,6 +1221,13 @@ namespace Raven
         public IntPtr display;
         public UIntPtr window;
         public UIntPtr visual;
+        /// <summary>
+        /// R_TRUE when the window was created with R_WINDOW_TRANSPARENT and the
+        /// window system gave it an alpha channel: what is presented in it must
+        /// carry alpha (premultiplied), which a rendering backend asks for when
+        /// it creates its surface.
+        /// </summary>
+        public int transparent;
     }
 
     /// <summary>
@@ -1434,6 +1598,16 @@ namespace Raven
     public delegate void RWindowResizeCallback(uint window, int width, int height, IntPtr user_data);
 
     /// <summary>
+    /// Called once when the widget is gone: deleted by the application,
+    /// with its parent or its window, or by Rshutdown. The place to release
+    /// what belonged to it (a texture, a connection). The handle it receives
+    /// names nothing any more: it is only there to tell widgets apart.
+    /// Called on the UI thread, shortly after the deletion.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RWidgetDestroyCallback(uint widget, IntPtr user_data);
+
+    /// <summary>
     /// Receives the input events of a widget before the widget itself.
     /// Return R_TRUE to consume the event (the widget and its parents will
     /// not see it), R_FALSE to let it continue.
@@ -1446,6 +1620,16 @@ namespace Raven
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void RExpanderChangedCallback(uint expander, int expanded, IntPtr user_data);
+
+    /// <summary>
+    /// Called when the user clicks a link of a Markdown label.
+    /// 
+    /// Without a callback, a link written [Save](action:file.save) fires the
+    /// action "file.save" (Raction_bind), and http, https and mailto links
+    /// open in the browser or the mail program of the user (Ropen_url).
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RLabelLinkCallback(uint label, IntPtr url, IntPtr user_data);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void RButtonClickedCallback(uint button, IntPtr user_data);
@@ -1519,6 +1703,39 @@ namespace Raven
     public delegate void RIslandChangedCallback(uint island, int expanded, IntPtr user_data);
 
     /// <summary>
+    /// Called each time the user changes the color: while dragging,
+    /// and when a code or a number is entered. The action of the widget
+    /// (OnChanged in XML) fires too.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RColorChangedCallback(uint picker, float r, float g, float b, float a, IntPtr user_data);
+
+    /// <summary>
+    /// The playhead moved: scrubbed by the user, or running by itself.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RTimelineTimeCallback(uint timeline, double seconds, IntPtr user_data);
+
+    /// <summary>
+    /// Something happened to an item; which thing depends on the function the callback was given to.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RTimelineItemCallback(uint timeline, int item, IntPtr user_data);
+
+    /// <summary>
+    /// Asked when the user is about to link two pins that may be
+    /// linked: return R_FALSE to refuse (a loop, a rule of the application).
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate int RNodeGraphConnectCallback(uint graph, int output_pin, int input_pin, IntPtr user_data);
+
+    /// <summary>
+    /// Something happened to a link or to a node; which thing depends on the function the callback was given to.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RNodeGraphItemCallback(uint graph, int item, IntPtr user_data);
+
+    /// <summary>
     /// Called when a dialog closes. `result` is the value given to Rdialog_close, 0 when dismissed.
     /// </summary>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -1552,6 +1769,35 @@ namespace Raven
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void RMeasureCallback(uint widget, ref float width, ref float height, IntPtr user_data);
+
+    /// <summary>
+    /// Called each time a file was loaded again.
+    /// path The file given when the interface was created.
+    /// ok   R_FALSE when the file could not be used (the interface is unchanged).
+    /// 
+    /// Widgets that had to be built again have new handles: this is the
+    /// place to look them up again (Rwidget_find).
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RXmlReloadCallback(IntPtr path, int ok, IntPtr user_data);
+
+    /// <summary>
+    /// Tags made by code. A library or an application that builds a widget of
+    /// its own (a R_WIDGET_CUSTOM with its callbacks, or an assembly of
+    /// widgets) can give it a tag: documents then write &lt;MyWidget .../&gt; as
+    /// they write &lt;Button/&gt;.
+    /// 
+    /// `create` makes the widget and returns it. `set_attribute` (may be
+    /// NULL) receives the attributes of the element before Raven looks at
+    /// them: it returns R_TRUE for those it understands, R_FALSE to leave
+    /// them to the widget (Name, Width, Slot..., and what its type knows).
+    /// Rwidget_set_attribute goes through it too.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate uint RXmlTagCreateCallback(IntPtr tag, IntPtr user_data);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate int RXmlTagAttributeCallback(uint widget, IntPtr name, IntPtr value, IntPtr user_data);
 
     public static class R
     {
@@ -1875,6 +2121,16 @@ namespace Raven
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Raction_set_default_handler(RActionCallback callback, IntPtr user_data);
 
+        /// <summary>
+        /// Opens an address with the program the user has for it: a web
+        /// page in the browser, a mailto: in the mail program, a file in its
+        /// application. Returns at once.
+        /// Returns: R_FALSE when the OS could not be asked (nothing tells whether
+        /// a program then really opened it).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Ropen_url([MarshalAs(UnmanagedType.LPUTF8Str)] string url);
+
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rclipboard_set_text([MarshalAs(UnmanagedType.LPUTF8Str)] string text);
 
@@ -2034,6 +2290,32 @@ namespace Raven
         public static extern void Rwindow_set_background(uint window, uint texture);
 
         /// <summary>
+        /// Chooses what shows behind a window created with
+        /// R_WINDOW_TRANSPARENT (see RBackdrop). With anything but
+        /// R_BACKDROP_NONE the window is not cleared with its color and the
+        /// wallpaper of the theme is not drawn: only what the widgets draw hides
+        /// the screen. In XML: &lt;Window Backdrop="Blur"&gt;.
+        /// Returns: R_TRUE when the window system does it; R_FALSE (the window
+        /// then stays as it was) without R_WINDOW_TRANSPARENT, or when it cannot.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwindow_set_backdrop(uint window, RBackdrop backdrop);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern RBackdrop Rwindow_get_backdrop(uint window);
+
+        /// <summary>
+        /// Opacity of the whole window, its frame included, from 0 to 1:
+        /// a window that fades, a tool that lets what is under it show.
+        /// Returns: R_FALSE when the window system cannot do it.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwindow_set_opacity(uint window, float opacity);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern float Rwindow_get_opacity(uint window);
+
+        /// <summary>
         /// Asks for a new frame even if no widget changed. Thread-safe.
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
@@ -2079,13 +2361,13 @@ namespace Raven
         /// <summary>
         /// Reads back the last rendered frame as tightly packed RGBA8 pixels.
         /// Blocks until the frame is rendered. Free the result with Rpixels_free.
+        /// The alpha is 255, except for a window that is seen through
+        /// (R_WINDOW_TRANSPARENT): its pixels are then premultiplied by their
+        /// alpha, as the window system receives them.
         /// Returns: NULL when the backend cannot capture.
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr Rwindow_capture(uint window, out int width, out int height);
-
-        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void Rpixels_free(IntPtr pixels);
 
         /// <summary>
         /// Widget that has the keyboard focus in the window, or R_INVALID_ID.
@@ -2188,6 +2470,121 @@ namespace Raven
         public static extern uint Rtheme_get_font();
 
         /// <summary>
+        /// Sets the accent color and everything that follows from it: its
+        /// hovered and pressed shades, the focus outline, the selection, the links.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_set_accent(float r, float g, float b);
+
+        /// <summary>
+        /// Tells whether the theme is a dark one. It decides the tint of
+        /// the glass, the colors of the code and which wallpaper the glass themes
+        /// use. Rtheme_apply and the theme files set it.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_set_dark(int dark);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtheme_is_dark();
+
+        /// <summary>
+        /// Image drawn behind the content of the windows that have no
+        /// background of their own, or R_INVALID_ID for none (the window color).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_set_wallpaper(uint texture);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rtheme_get_wallpaper();
+
+        /// <summary>
+        /// Gives a color to the widgets of a type and / or of a class,
+        /// instead of the color of the theme.
+        /// widget      Tag of a type of widget ("Button"), or NULL for every type.
+        /// style_class A class (Rwidget_set_class, Class="..."), or NULL
+        ///                    for the widgets of the type whatever their classes.
+        /// 
+        /// When several styles give the same value to a widget, the one with a
+        /// type and a class wins over the one with a class, which wins over the
+        /// one with a type; between equals, the last one set wins.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_set_style_color([MarshalAs(UnmanagedType.LPUTF8Str)] string widget, [MarshalAs(UnmanagedType.LPUTF8Str)] string style_class, RColorRole role, float r, float g, float b, float a);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_set_style_metric([MarshalAs(UnmanagedType.LPUTF8Str)] string widget, [MarshalAs(UnmanagedType.LPUTF8Str)] string style_class, RMetric metric, float value);
+
+        /// <summary>
+        /// R_MATERIAL_DEFAULT removes the material of the style.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_set_style_material([MarshalAs(UnmanagedType.LPUTF8Str)] string widget, [MarshalAs(UnmanagedType.LPUTF8Str)] string style_class, RMaterial material);
+
+        /// <summary>
+        /// Removes every style of the theme. Rtheme_apply and Rtheme_use do it too.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_clear_styles();
+
+        /// <summary>
+        /// Reads a theme file and keeps the theme under its name (the Name
+        /// attribute, else the name of the file). It does not change the theme in
+        /// use unless a theme of that name is the one in use.
+        /// 
+        /// The file is watched like the interface files (Rxml_set_live_reload):
+        /// saving it updates every widget that uses the theme.
+        /// Returns: The name of the theme, valid until Rshutdown, or NULL after
+        /// reporting an error.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rtheme_load", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rtheme_load_([MarshalAs(UnmanagedType.LPUTF8Str)] string path);
+        public static string Rtheme_load(string path) { return Text(Rtheme_load_(path)); }
+
+        /// <summary>
+        /// Same, from a text. `size` may be 0 for a null-terminated text.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rtheme_load_from_memory", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rtheme_load_from_memory_([MarshalAs(UnmanagedType.LPUTF8Str)] string xml, UIntPtr size);
+        public static string Rtheme_load_from_memory(string xml, UIntPtr size) { return Text(Rtheme_load_from_memory_(xml, size)); }
+
+        /// <summary>
+        /// Makes a named theme the theme of the application: "Dark",
+        /// "Light", "GlassDark", "GlassLight", or a theme given by Rtheme_load.
+        /// Values changed with Rtheme_set_... are lost.
+        /// Returns: R_FALSE, after reporting an error, when no theme has that name.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtheme_use([MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        /// <summary>
+        /// Name of the theme in use ("Dark" at start).
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rtheme_get_name", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rtheme_get_name_();
+        public static string Rtheme_get_name() { return Text(Rtheme_get_name_()); }
+
+        /// <summary>
+        /// Number of named themes, the four built-in ones included.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtheme_get_count();
+
+        /// <summary>
+        /// Name of the index-th one, or NULL.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rtheme_get_name_at", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rtheme_get_name_at_(int index);
+        public static string Rtheme_get_name_at(int index) { return Text(Rtheme_get_name_at_(index)); }
+
+        /// <summary>
+        /// Writes the theme in use, with every change made since it was
+        /// applied, as a theme file.
+        /// name Name given to the theme in the file; NULL keeps the current one.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtheme_save([MarshalAs(UnmanagedType.LPUTF8Str)] string path, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        /// <summary>
         /// Creates a font from the content of a .ttf / .otf file.
         /// The buffer is copied. Glyphs are rasterized on demand, at the exact
         /// pixel size needed by each window scale, into a shared atlas.
@@ -2224,6 +2621,28 @@ namespace Raven
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rfont_set_fallback(uint font, uint fallback);
+
+        /// <summary>
+        /// Gives a font the font to use for one of its styles: the bold
+        /// file of the same family, its italic file. Formatted text (Markdown
+        /// labels, the Markdown of the text editor) uses them.
+        /// 
+        /// A font that was given none still has the three styles: Raven draws
+        /// its glyphs thicker for bold and slanted for italic, keeping their
+        /// advances, so that text does not move when its style changes.
+        /// variant R_INVALID_ID goes back to the style Raven derives.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rfont_set_variant(uint font, RFontStyle style, uint variant);
+
+        /// <summary>
+        /// Returns: The font drawn for a style of `font`: the one given with
+        /// Rfont_set_variant, else the one Raven derives from it (made on first
+        /// use; it lives as long as `font` and cannot be deleted by itself).
+        /// Usable wherever a font is: Rlabel_set_font, Rdraw_text...
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rfont_get_variant(uint font, RFontStyle style);
 
         /// <summary>
         /// Measures a UTF-8 string, in logical units, at scale 1.
@@ -2270,6 +2689,23 @@ namespace Raven
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rtexture_update(uint texture, byte[] rgba, int width, int height);
+
+        /// <summary>
+        /// Decodes an image file held in memory (PNG, JPEG, BMP, TGA) into
+        /// tightly packed RGBA8 pixels, without making a texture: for pictures
+        /// that arrive one after the other and go to Rtexture_update. Thread-safe,
+        /// so that the decoding can be done away from the UI thread.
+        /// Returns: The pixels, to release with Rpixels_free; NULL when the data
+        /// is not an image Raven can read.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr Rimage_decode(byte[] data, UIntPtr data_size, out int width, out int height);
+
+        /// <summary>
+        /// Releases pixels returned by Raven (Rimage_decode, Rwindow_capture). Thread-safe.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rpixels_free(IntPtr pixels);
 
         /// <summary>
         /// Returns: R_TRUE once an asynchronous texture is decoded (or failed).
@@ -2551,6 +2987,9 @@ namespace Raven
         public static extern IntPtr Rwidget_get_user_handle(uint widget);
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwidget_set_destroy_callback(uint widget, RWidgetDestroyCallback callback, IntPtr user_data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rwidget_set_event_callback(uint widget, RWidgetEventCallback callback, IntPtr user_data);
 
         /// <summary>
@@ -2618,6 +3057,14 @@ namespace Raven
         public static extern void Rwidget_clear_color(uint widget, RColorRole role);
 
         /// <summary>
+        /// The color the widget is drawn with for a role: its own, else
+        /// the one of the styles of its theme that apply to it, else the one of
+        /// its theme. What a custom widget should draw itself with.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwidget_get_color(uint widget, RColorRole role, out float r, out float g, out float b, out float a);
+
+        /// <summary>
         /// Gives one widget a material of its own, whatever the theme:
         /// a solid button in a glass window, a panel of clear glass in a flat one.
         /// A widget that draws no surface (a box, a label) gets one of this
@@ -2644,10 +3091,62 @@ namespace Raven
         public static extern void Rwidget_clear_metric(uint widget, RMetric metric);
 
         /// <summary>
+        /// Returns: The metric the widget uses: its own, else the one of a style, else the one of its theme.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern float Rwidget_get_metric(uint widget, RMetric metric);
+
+        /// <summary>
+        /// Classes of the widget, separated by spaces ("danger large"):
+        /// the styles of the theme made for these classes apply to it
+        /// (Rtheme_set_style_color, &lt;Style Class="danger" .../&gt; in a theme file).
+        /// In XML: Class="...". NULL or "" removes them.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwidget_set_class(uint widget, [MarshalAs(UnmanagedType.LPUTF8Str)] string classes);
+
+        /// <summary>
+        /// Returns: The classes, "" when it has none. Valid until they change.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rwidget_get_class", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rwidget_get_class_(uint widget);
+        public static string Rwidget_get_class(uint widget) { return Text(Rwidget_get_class_(widget)); }
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwidget_add_class(uint widget, [MarshalAs(UnmanagedType.LPUTF8Str)] string style_class);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwidget_remove_class(uint widget, [MarshalAs(UnmanagedType.LPUTF8Str)] string style_class);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwidget_has_class(uint widget, [MarshalAs(UnmanagedType.LPUTF8Str)] string style_class);
+
+        /// <summary>
+        /// Gives the widget and everything inside it a theme of their own,
+        /// by name ("Dark", "GlassLight", or a theme of Rtheme_load): a dark side
+        /// bar in a light window, a preview of another theme. Menus and lists
+        /// opened from inside follow. In XML: Theme="...".
+        /// name NULL or "" follows the parent (the application theme) again.
+        /// Returns: R_FALSE, after reporting an error, when no theme has that name.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwidget_set_theme(uint widget, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        /// <summary>
+        /// Returns: Name of the theme the widget is drawn with.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rwidget_get_theme", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rwidget_get_theme_(uint widget);
+        public static string Rwidget_get_theme(uint widget) { return Text(Rwidget_get_theme_(widget)); }
+
+        /// <summary>
         /// Gap inserted between neighbouring children.
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rpanel_set_spacing(uint panel, float spacing);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern float Rpanel_get_spacing(uint panel);
 
         /// <summary>
         /// Lets a column / row grow to take a share of the free space
@@ -2751,6 +3250,80 @@ namespace Raven
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rsplitter_set_min_pane_size(uint splitter, float size);
 
+        /// <summary>
+        /// Creates a panel that shows what is behind it out of focus,
+        /// with one child over it. In XML:
+        /// 
+        ///   &lt;BackgroundBlur Style="Frosted" Radius="24" CornerRadius="18" Padding="16"&gt;
+        ///       &lt;Label&gt;Over a blurred view of the window&lt;/Label&gt;
+        ///   &lt;/BackgroundBlur&gt;
+        /// 
+        /// It works in any theme and with any material: it is not the glass of
+        /// the glass themes (which bends and reflects), but the looks of
+        /// RBlurStyle. Unlike the opacity of a widget, it does not let what is
+        /// behind show sharp.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rbackground_blur_create();
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_set_style(uint blur, RBlurStyle style);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern RBlurStyle Rbackground_blur_get_style(uint blur);
+
+        /// <summary>
+        /// How far what is behind goes out of focus, in logical units:
+        /// 4 softens, 20 hides the details, 60 leaves only colors. A negative
+        /// value (the default) uses R_METRIC_BLUR_RADIUS of the theme.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_set_radius(uint blur, float radius);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern float Rbackground_blur_get_radius(uint blur);
+
+        /// <summary>
+        /// Color laid over the blur; its alpha is how much of it. Without
+        /// one, R_BLUR_PLAIN has none and the other styles take theirs from the
+        /// theme (R_COLOR_PANEL).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_set_tint(uint blur, float r, float g, float b, float a);
+
+        /// <summary>
+        /// Removes the tint given with Rbackground_blur_set_tint.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_clear_tint(uint blur);
+
+        /// <summary>
+        /// Saturation of what is seen through: 1 = as it is, 0 = gray, 1.5 = vivid. Negative = the one of the style.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_set_saturation(uint blur, float saturation);
+
+        /// <summary>
+        /// Fine grain over the blur, 0 = none .. 1. Negative = the one of the style.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_set_grain(uint blur, float grain);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_set_corner_radius(uint blur, float top_left, float top_right, float bottom_right, float bottom_left);
+
+        /// <summary>
+        /// Space between the edge and the child.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_set_padding(uint blur, float left, float top, float right, float bottom);
+
+        /// <summary>
+        /// Soft shadow under the panel; blur 0 = none (default).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rbackground_blur_set_shadow(uint blur, float shadow_blur);
+
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rswitcher_set_index(uint switcher, int index);
 
@@ -2827,6 +3400,39 @@ namespace Raven
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rlabel_set_color(uint label, float r, float g, float b, float a);
+
+        /// <summary>
+        /// R_TRUE reads the text as Markdown and shows it formatted
+        /// (Markdown="true" in XML):
+        /// 
+        ///   # titles, **strong**, *emphasis*, `code`, ~~struck~~, [links](url),
+        ///   lists and lists in lists, - [x] task lists, &gt; quotes, --- rules,
+        ///   | tables |, images alone on their line, and ``` blocks of code with
+        ///   the colors of their language (```c, ```python...: the languages of
+        ///   the text editor, raven_text_editor.h).
+        /// 
+        /// The text wraps on the width of the label unless Rlabel_set_wrap said
+        /// otherwise; put the label in a scroll box for a long document. Strong
+        /// and emphasized text use the bold and italic of the font
+        /// (Rfont_set_variant), which Raven derives from the font itself when it
+        /// was given none. The colors come from the theme: R_COLOR_LINK,
+        /// R_COLOR_CODE, R_COLOR_SEPARATOR, R_COLOR_ACCENT.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rlabel_set_markdown(uint label, int enabled);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rlabel_get_markdown(uint label);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rlabel_set_link_callback(uint label, RLabelLinkCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// The text of a Markdown label without its marks, as a reader sees it. Valid until the next call.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rlabel_get_plain_text", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rlabel_get_plain_text_(uint label);
+        public static string Rlabel_get_plain_text(uint label) { return Text(Rlabel_get_plain_text_(label)); }
 
         /// <summary>
         /// Shortcut for Rwidget_create(R_WIDGET_BUTTON) + Rbutton_set_text.
@@ -3378,6 +3984,20 @@ namespace Raven
         public static string Rtext_editor_get_language(uint editor) { return Text(Rtext_editor_get_language_(editor)); }
 
         /// <summary>
+        /// R_TRUE makes the editor an editor of Markdown (the "Markdown"
+        /// language; Markdown="true" in XML): the text stays as it is written,
+        /// and what it formats shows while typing, strong text in bold,
+        /// emphasized text in italic, titles in bold, code, links and marks in
+        /// their colors. A label with Rlabel_set_markdown shows the same text
+        /// formatted. R_FALSE removes the language.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtext_editor_set_markdown(uint editor, int enabled);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtext_editor_get_markdown(uint editor);
+
+        /// <summary>
         /// What the language of the editor makes of the character at a
         /// position: the colors come from it. R_TOKEN_TEXT without a language.
         /// </summary>
@@ -3433,6 +4053,23 @@ namespace Raven
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern int Rtext_editor_get_marker_count(uint editor);
+
+        /// <summary>
+        /// Color of a kind of token in the theme in use, instead of the
+        /// one Raven picks for dark and for light themes. Theme files set them
+        /// with &lt;Syntax Keyword="#FF7AB2" String="..."/&gt;.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_set_token_color(RToken token, float r, float g, float b, float a);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_get_token_color(RToken token, out float r, out float g, out float b, out float a);
+
+        /// <summary>
+        /// Back to the colors Raven picks.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtheme_clear_token_colors();
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rtext_editor_set_changed_callback(uint editor, RTextEditorChangedCallback callback, IntPtr user_data);
@@ -3607,6 +4244,596 @@ namespace Raven
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint Rwindow_get_island(uint window);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rcolor_picker_create();
+
+        /// <summary>
+        /// Sets the color (0..1 each). The callback is not called.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_set_color(uint picker, float r, float g, float b, float a);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_get_color(uint picker, out float r, out float g, out float b, out float a);
+
+        /// <summary>
+        /// The same color as hue (0..360), saturation and value (0..1).
+        /// The picker remembers the hue of a gray and the saturation of black,
+        /// which red, green and blue cannot tell.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_set_hsv(uint picker, float hue, float saturation, float value);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_get_hsv(uint picker, out float hue, out float saturation, out float value);
+
+        /// <summary>
+        /// Sets the color from text: "#RGB", "#RRGGBB", "#RRGGBBAA" (the
+        /// '#' may be left out) or one of the color names of the XML attributes.
+        /// A code without opacity leaves the opacity as it is.
+        /// Returns: R_FALSE when the text is not a color (the color is unchanged).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rcolor_picker_set_hex(uint picker, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
+
+        /// <summary>
+        /// Returns: "#RRGGBB", or "#RRGGBBAA" when the opacity is shown and not full. Valid until the color changes.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rcolor_picker_get_hex", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rcolor_picker_get_hex_(uint picker);
+        public static string Rcolor_picker_get_hex(uint picker) { return Text(Rcolor_picker_get_hex_(picker)); }
+
+        /// <summary>
+        /// R_TRUE (default) shows the opacity strip and the fourth number. R_FALSE: colors are opaque.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_set_alpha_enabled(uint picker, int enabled);
+
+        /// <summary>
+        /// The color shown next to the current one, to compare with what
+        /// was there before: clicking it comes back to it. Rcolor_picker_set_color
+        /// does not change it; a popup picker takes it when it opens.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_set_previous_color(uint picker, float r, float g, float b, float a);
+
+        /// <summary>
+        /// Adds a color to the row of swatches: one click takes it.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_add_swatch(uint picker, float r, float g, float b, float a);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_clear_swatches(uint picker);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rcolor_picker_get_swatch_count(uint picker);
+
+        /// <summary>
+        /// R_TRUE turns the widget into a swatch that opens the picker in a popup.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_set_popup(uint picker, int popup);
+
+        /// <summary>
+        /// R_TRUE hides the code and the numbers: only the square, the strips and the swatches.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_set_compact(uint picker, int compact);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_picker_set_changed_callback(uint picker, RColorChangedCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Red, green, blue (0..1) to hue (0..360), saturation, value (0..1).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_rgb_to_hsv(float r, float g, float b, out float hue, out float saturation, out float value);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rcolor_hsv_to_rgb(float hue, float saturation, float value, out float r, out float g, out float b);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rtimeline_create();
+
+        /// <summary>
+        /// Length of the sequence. The view and the playhead stay within 0 .. duration.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_duration(uint timeline, double seconds);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern double Rtimeline_get_duration(uint timeline);
+
+        /// <summary>
+        /// Moves the playhead. The time callback is not called.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_time(uint timeline, double seconds);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern double Rtimeline_get_time(uint timeline);
+
+        /// <summary>
+        /// Frames per second. With a frame rate the ruler counts in
+        /// frames ("2:12" is second 2, frame 12) and everything snaps to frames;
+        /// 0 (default) counts in seconds and snaps to the marks of the ruler.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_frame_rate(uint timeline, double frames_per_second);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern double Rtimeline_get_frame_rate(uint timeline);
+
+        /// <summary>
+        /// R_FALSE lets items be placed anywhere (holding Alt while dragging does it for one move).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_snapping(uint timeline, int enabled);
+
+        /// <summary>
+        /// The part of the sequence that is shown. Zooming is showing less.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_view(uint timeline, double start, double end);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_get_view(uint timeline, out double start, out double end);
+
+        /// <summary>
+        /// Makes the playhead run by itself, at the speed of the clock,
+        /// calling the time callback at each frame; at the end it stops, or
+        /// starts again with Rtimeline_set_loop.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_playing(uint timeline, int playing);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_is_playing(uint timeline);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_loop(uint timeline, int loop);
+
+        /// <summary>
+        /// Returns: The track, or 0. Tracks are shown in the order they were added.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_add_track(uint timeline, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        /// <summary>
+        /// Removes a track and everything on it.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_remove_track(uint timeline, int track);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_get_track_count(uint timeline);
+
+        /// <summary>
+        /// Returns: The index-th track from the top, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_get_track(uint timeline, int index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_track_name(uint timeline, int track, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        [DllImport(Lib, EntryPoint = "Rtimeline_get_track_name", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rtimeline_get_track_name_(uint timeline, int track);
+        public static string Rtimeline_get_track_name(uint timeline, int track) { return Text(Rtimeline_get_track_name_(timeline, track)); }
+
+        /// <summary>
+        /// Color of the clips and keys of the track that have none of their own.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_track_color(uint timeline, int track, float r, float g, float b);
+
+        /// <summary>
+        /// Height of the track in logical units; 0 = the default.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_track_height(uint timeline, int track, float height);
+
+        /// <summary>
+        /// A locked track shows its items but does not let the user change them.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_track_locked(uint timeline, int track, int locked);
+
+        /// <summary>
+        /// A muted track is drawn dimmed; what muting means is up to the application.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_track_muted(uint timeline, int track, int muted);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_is_track_muted(uint timeline, int track);
+
+        /// <summary>
+        /// Returns: The clip, or 0 when the track does not exist.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_add_clip(uint timeline, int track, double start, double length, [MarshalAs(UnmanagedType.LPUTF8Str)] string label);
+
+        /// <summary>
+        /// Returns: The key, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_add_key(uint timeline, int track, double time);
+
+        /// <summary>
+        /// A named moment of the whole sequence, shown on the ruler and across the tracks.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_add_marker(uint timeline, double time, [MarshalAs(UnmanagedType.LPUTF8Str)] string label);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_remove_item(uint timeline, int item);
+
+        /// <summary>
+        /// Removes every track, clip, key and marker.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_clear(uint timeline);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern RTimelineItem Rtimeline_get_item_type(uint timeline, int item);
+
+        /// <summary>
+        /// Returns: The track of a clip or of a key; 0 for a marker.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_get_item_track(uint timeline, int item);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern double Rtimeline_get_item_start(uint timeline, int item);
+
+        /// <summary>
+        /// Returns: The length of a clip; 0 for a key or a marker.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern double Rtimeline_get_item_length(uint timeline, int item);
+
+        /// <summary>
+        /// Moves an item: to another track (0 = keep), another start, another length (clips; negative = keep).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_item(uint timeline, int item, int track, double start, double length);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_item_label(uint timeline, int item, [MarshalAs(UnmanagedType.LPUTF8Str)] string label);
+
+        [DllImport(Lib, EntryPoint = "Rtimeline_get_item_label", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rtimeline_get_item_label_(uint timeline, int item);
+        public static string Rtimeline_get_item_label(uint timeline, int item) { return Text(Rtimeline_get_item_label_(timeline, item)); }
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_item_color(uint timeline, int item, float r, float g, float b);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_get_item_count(uint timeline);
+
+        /// <summary>
+        /// Returns: The index-th item, in the order they were added, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_get_item(uint timeline, int index);
+
+        /// <summary>
+        /// Selects an item, alone or (add) with the ones already selected.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_select(uint timeline, int item, int add);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_clear_selection(uint timeline);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_is_selected(uint timeline, int item);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_get_selection_count(uint timeline);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtimeline_get_selected(uint timeline, int index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_time_callback(uint timeline, RTimelineTimeCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Called for each item the user moved, stretched or retimed, as
+        /// it happens. The action of the widget (OnChanged in XML) fires once
+        /// per gesture, when the button is released.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_changed_callback(uint timeline, RTimelineItemCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Called when the selection changed; `item` is the item just clicked, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_selection_callback(uint timeline, RTimelineItemCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Called when an item is double-clicked.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_activated_callback(uint timeline, RTimelineItemCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Called when the user deletes an item (the Delete key), before
+        /// it is removed: its values can still be read. Without this callback the
+        /// Delete key does nothing: the application decides what can be deleted.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtimeline_set_removed_callback(uint timeline, RTimelineItemCallback callback, IntPtr user_data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rnode_graph_create();
+
+        /// <summary>
+        /// x,y Top-left corner of the node, in the units of the canvas.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_add_node(uint graph, [MarshalAs(UnmanagedType.LPUTF8Str)] string title, float x, float y);
+
+        /// <summary>
+        /// Removes a node, its pins, their links, and the widget it holds.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_remove_node(uint graph, int node);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_clear(uint graph);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_node_count(uint graph);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_node(uint graph, int index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_node_title(uint graph, int node, [MarshalAs(UnmanagedType.LPUTF8Str)] string title);
+
+        [DllImport(Lib, EntryPoint = "Rnode_graph_get_node_title", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rnode_graph_get_node_title_(uint graph, int node);
+        public static string Rnode_graph_get_node_title(uint graph, int node) { return Text(Rnode_graph_get_node_title_(graph, node)); }
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_node_position(uint graph, int node, float x, float y);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_get_node_position(uint graph, int node, out float x, out float y);
+
+        /// <summary>
+        /// Size of a node on the canvas: Raven works it out from its title, its pins and its content.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_get_node_size(uint graph, int node, out float width, out float height);
+
+        /// <summary>
+        /// Color of the header of the node; without one it takes the accent color of the theme.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_node_color(uint graph, int node, float r, float g, float b);
+
+        /// <summary>
+        /// Puts a widget inside the node, under its pins: the graph owns
+        /// it from now on. R_INVALID_ID removes (and deletes) the one it had.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_node_content(uint graph, int node, uint widget);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rnode_graph_get_node_content(uint graph, int node);
+
+        /// <summary>
+        /// Name of the node, the `Name` of its XML element: what
+        /// &lt;Link From="name.pin"&gt; and Rnode_graph_find_node look for. Not shown.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_node_name(uint graph, int node, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        [DllImport(Lib, EntryPoint = "Rnode_graph_get_node_name", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rnode_graph_get_node_name_(uint graph, int node);
+        public static string Rnode_graph_get_node_name(uint graph, int node) { return Text(Rnode_graph_get_node_name_(graph, node)); }
+
+        /// <summary>
+        /// Returns: The node of that name, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_find_node(uint graph, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        /// <summary>
+        /// Value the application attaches to a node.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_node_user_data(uint graph, int node, IntPtr user_data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr Rnode_graph_get_node_user_data(uint graph, int node);
+
+        /// <summary>
+        /// type Free text, or NULL for a pin that links to any type. Returns: The pin, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_add_input(uint graph, int node, [MarshalAs(UnmanagedType.LPUTF8Str)] string label, [MarshalAs(UnmanagedType.LPUTF8Str)] string type);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_add_output(uint graph, int node, [MarshalAs(UnmanagedType.LPUTF8Str)] string label, [MarshalAs(UnmanagedType.LPUTF8Str)] string type);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_remove_pin(uint graph, int pin);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_pin_node(uint graph, int pin);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_is_pin_output(uint graph, int pin);
+
+        [DllImport(Lib, EntryPoint = "Rnode_graph_get_pin_label", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rnode_graph_get_pin_label_(uint graph, int pin);
+        public static string Rnode_graph_get_pin_label(uint graph, int pin) { return Text(Rnode_graph_get_pin_label_(graph, pin)); }
+
+        [DllImport(Lib, EntryPoint = "Rnode_graph_get_pin_type", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rnode_graph_get_pin_type_(uint graph, int pin);
+        public static string Rnode_graph_get_pin_type(uint graph, int pin) { return Text(Rnode_graph_get_pin_type_(graph, pin)); }
+
+        /// <summary>
+        /// Name of the pin for Rnode_graph_find_pin and for the links of XML; a pin without one answers to its label.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_pin_name(uint graph, int pin, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        /// <summary>
+        /// Returns: The pin of a node with that name (or label), or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_find_pin(uint graph, int node, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        /// <summary>
+        /// Where a pin is on the canvas (the middle of its dot).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_get_pin_position(uint graph, int pin, out float x, out float y);
+
+        /// <summary>
+        /// Returns: The index-th input (or output) of a node, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_input(uint graph, int node, int index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_output(uint graph, int node, int index);
+
+        /// <summary>
+        /// Color of the pins of a type and of the links between them.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_type_color(uint graph, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, float r, float g, float b);
+
+        /// <summary>
+        /// Links an output to an input, as the user does by dragging.
+        /// The connect callback is not asked.
+        /// Returns: The link; 0 when the pins cannot be linked (two inputs, the
+        /// same node, different types).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_connect(uint graph, int output_pin, int input_pin);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_disconnect(uint graph, int link);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_link_count(uint graph);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_link(uint graph, int index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_link_output(uint graph, int link);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_link_input(uint graph, int link);
+
+        /// <summary>
+        /// Returns: The link that arrives at an input pin, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_input_link(uint graph, int input_pin);
+
+        /// <summary>
+        /// What the middle of the widget shows: a point of the canvas, and how large (1 = one unit per logical unit).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_view(uint graph, float center_x, float center_y, float zoom);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_get_view(uint graph, out float center_x, out float center_y, out float zoom);
+
+        /// <summary>
+        /// Converts a point of the widget (from its corner, as in the events) to the canvas, and back, with the view as it is shown now.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_to_canvas(uint graph, float x, float y, out float canvas_x, out float canvas_y);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_from_canvas(uint graph, float canvas_x, float canvas_y, out float x, out float y);
+
+        /// <summary>
+        /// Moves and zooms so that every node shows.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_frame_all(uint graph);
+
+        /// <summary>
+        /// R_FALSE hides the grid of dots (shown by default).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_grid_visible(uint graph, int visible);
+
+        /// <summary>
+        /// The pulses of light that run along the links, from output to
+        /// input. By default they run while the pointer is over the graph, and
+        /// the window rests the rest of the time. R_TRUE makes them run all the
+        /// time (the window then draws without pause); R_FALSE stops them.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_flow_visible(uint graph, int visible);
+
+        /// <summary>
+        /// R_TRUE: the user can look but not move, link or delete.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_read_only(uint graph, int read_only);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_select_node(uint graph, int node, int add);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_clear_selection(uint graph);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_is_node_selected(uint graph, int node);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_selection_count(uint graph);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rnode_graph_get_selected_node(uint graph, int index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_connect_callback(uint graph, RNodeGraphConnectCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Called after the user made a link, and before a link the user removed goes (its pins can still be read).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_linked_callback(uint graph, RNodeGraphItemCallback callback, IntPtr user_data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_unlinked_callback(uint graph, RNodeGraphItemCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Called for each node the user moved, when the button is released.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_moved_callback(uint graph, RNodeGraphItemCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Called when the selection changed; `item` is the node just clicked, or 0.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_selection_callback(uint graph, RNodeGraphItemCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Called when the user deletes a node (the Delete key), before
+        /// it is removed. Without this callback the Delete key only removes
+        /// links: the application decides whether nodes can be deleted.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rnode_graph_set_removed_callback(uint graph, RNodeGraphItemCallback callback, IntPtr user_data);
 
         /// <summary>
         /// Shows a widget as a dialog of a window. The window takes
@@ -3898,6 +5125,12 @@ namespace Raven
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rdraw_line(IntPtr painter, float x0, float y0, float x1, float y1, float thickness, float r, float g, float b, float a);
 
+        /// <summary>
+        /// Anti-aliased cubic Bezier curve from (x0, y0) to (x1, y1), pulled by two control points.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rdraw_curve(IntPtr painter, float x0, float y0, float cx0, float cy0, float cx1, float cy1, float x1, float y1, float thickness, float r, float g, float b, float a);
+
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rdraw_triangle(IntPtr painter, float x0, float y0, float x1, float y1, float x2, float y2, float r, float g, float b, float a);
 
@@ -4017,6 +5250,28 @@ namespace Raven
         public static extern void Rxml_set_base_path([MarshalAs(UnmanagedType.LPUTF8Str)] string path);
 
         /// <summary>
+        /// Turns live reload on or off. It is on by default; the
+        /// environment variable RAVEN_LIVE_RELOAD=0 turns it off without
+        /// rebuilding. When off, files are never looked at again.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rxml_set_live_reload(int enabled);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rxml_get_live_reload();
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rxml_set_reload_callback(RXmlReloadCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Looks at the files now, without waiting for the next look
+        /// (there are five per second), even when live reload is off.
+        /// Returns: The number of files found changed.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rxml_check_files();
+
+        /// <summary>
         /// Reads the &lt;Widget Name="..."&gt; declarations of a document (its
         /// root, or the children of a &lt;Widgets&gt; root) so that the tags they
         /// declare can be used in the documents loaded afterwards.
@@ -4044,6 +5299,30 @@ namespace Raven
         [DllImport(Lib, EntryPoint = "Rxml_get_registered_widget_name", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr Rxml_get_registered_widget_name_(int index);
         public static string Rxml_get_registered_widget_name(int index) { return Text(Rxml_get_registered_widget_name_(index)); }
+
+        /// <summary>
+        /// Registers a tag (or replaces what it was registered with).
+        /// Returns: R_FALSE when the name is the one of a widget of Raven, or when too many tags are registered (64).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rxml_register_tag([MarshalAs(UnmanagedType.LPUTF8Str)] string tag, RXmlTagCreateCallback create, RXmlTagAttributeCallback set_attribute, IntPtr user_data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rxml_unregister_tag([MarshalAs(UnmanagedType.LPUTF8Str)] string tag);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rxml_is_tag_registered([MarshalAs(UnmanagedType.LPUTF8Str)] string tag);
+
+        /// <summary>
+        /// The path of a file named in a document: as the attributes
+        /// Source of Raven read it, relative to the folder of the document being
+        /// loaded (while it loads), else to the base path. For the attributes of
+        /// the tags made by code that name files.
+        /// Returns: The path; valid until the next call.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rxml_resolve_path", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rxml_resolve_path_([MarshalAs(UnmanagedType.LPUTF8Str)] string path);
+        public static string Rxml_resolve_path(string path) { return Text(Rxml_resolve_path_(path)); }
 
         /// <summary>
         /// Sets a property from text, with the names and value syntax of the
