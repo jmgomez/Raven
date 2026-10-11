@@ -176,6 +176,7 @@ class RBackdrop(enum.IntEnum):
     
       Windows 11          every value
       Windows 10          TRANSPARENT, BLUR, ACRYLIC (MICA gives ACRYLIC)
+      macOS               TRANSPARENT; BLUR / ACRYLIC / MICA map to system transparency
       X11                 TRANSPARENT with any compositing manager; BLUR where
                           the compositor blurs on request (KWin; picom and
                           others with their own settings); ACRYLIC and MICA
@@ -1144,7 +1145,8 @@ class RFrameStats(ctypes.Structure):
 class RNativeWindow(ctypes.Structure):
     """Native handles of a window or of a native viewport.
       Win32 : display = HINSTANCE, window = HWND
-      X11   : display = Display*,  window = Window (XID), visual = VisualID"""
+      X11   : display = Display*,  window = Window (XID), visual = VisualID
+      Cocoa : display = NSWindow*, window = CAMetalLayer* for Vulkan presentation"""
     _fields_ = [
         ("system", ctypes.c_int),
         ("display", ctypes.c_void_p),
