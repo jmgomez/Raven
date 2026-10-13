@@ -160,7 +160,7 @@ const (
 )
 
 // RBackdrop: What is seen behind a window created with R_WINDOW_TRANSPARENT. Windows 11 every value Windows
-// 10 TRANSPARENT, BLUR, ACRYLIC (MICA gives ACRYLIC) macOS TRANSPARENT; BLUR / ACRYLIC / MICA map to system
+// 10 TRANSPARENT, BLUR, ACRYLIC (MICA gives ACRYLIC) macOS TRANSPARENT; other backdrops fall back to
 // transparency X11 TRANSPARENT with any compositing manager; BLUR where the compositor blurs on request
 // (KWin; picom and others with their own settings); ACRYLIC and MICA give BLUR no compositor nothing: the
 // window stays opaque
