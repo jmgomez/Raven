@@ -108,6 +108,7 @@ typedef enum RCursor {
 	R_CURSOR_RESIZE_NESW = 183,
 	R_CURSOR_MOVE = 184,
 	R_CURSOR_NOT_ALLOWED = 185,
+	R_CURSOR_NONE = 186,
 } RCursor;
 typedef enum RKey {
 	R_KEY_UNKNOWN = 0,
@@ -360,6 +361,7 @@ typedef enum RWidgetType {
 	R_WIDGET_COLOR_PICKER = 550,
 	R_WIDGET_TIMELINE = 551,
 	R_WIDGET_NODE_GRAPH = 552,
+	R_WIDGET_TILE_VIEW = 553,
 } RWidgetType;
 typedef enum RHAlign {
 	R_HALIGN_FILL = 576,
@@ -525,6 +527,7 @@ typedef struct RFrameStats RFrameStats;
 typedef struct RNativeWindow RNativeWindow;
 typedef struct REvent REvent;
 typedef struct RDropEvent RDropEvent;
+typedef struct RTileItem RTileItem;
 typedef struct RLanguageDesc RLanguageDesc;
 typedef struct RFileFilter RFileFilter;
 typedef struct RFileDialogDesc RFileDialogDesc;
@@ -541,6 +544,7 @@ typedef void (*RErrorCallback)(RError code, RSeverity severity, const char* deta
 typedef int (*RDropCallback)(Rid target, const RDropEvent* event, void* user_data);
 typedef int (*RWindowCloseCallback)(Rid window, void* user_data);
 typedef void (*RWindowResizeCallback)(Rid window, int width, int height, void* user_data);
+typedef int (*RWindowEventHook)(Rid window, const REvent* event, void* user_data);
 typedef void (*RWidgetDestroyCallback)(Rid widget, void* user_data);
 typedef int (*RWidgetEventCallback)(Rid widget, const REvent* event, void* user_data);
 typedef void (*RTabChangedCallback)(Rid tab_view, int index, void* user_data);
@@ -555,7 +559,12 @@ typedef void (*RComboBoxChangedCallback)(Rid combo_box, int index, void* user_da
 typedef const char* (*RListItemTextCallback)(Rid list_view, int index, void* user_data);
 typedef void (*RListEventCallback)(Rid list_view, int index, void* user_data);
 typedef void (*RTreeEventCallback)(Rid tree_view, Rid item, void* user_data);
+typedef void (*RTreeContextCallback)(Rid tree_view, Rid item, float x, float y, void* user_data);
 typedef void (*RMenuItemClickedCallback)(Rid item, void* user_data);
+typedef void (*RTileItemCallback)(Rid tile_view, int index, RTileItem* item, void* user_data);
+typedef void (*RTileEventCallback)(Rid tile_view, int index, void* user_data);
+typedef void (*RTileContextCallback)(Rid tile_view, int index, float x, float y, void* user_data);
+typedef const char* (*RTileDragDataCallback)(Rid tile_view, void* user_data);
 typedef void (*RCompletionCallback)(Rid editor, const char* prefix, void* user_data);
 typedef void (*RTextEditorChangedCallback)(Rid editor, void* user_data);
 typedef int (*RDockCloseCallback)(Rid area, Rid panel, void* user_data);
@@ -645,6 +654,18 @@ struct RDropEvent {
 	const char* const* paths;
 	int path_count;
 	const char* text;
+	const char* drag_type;
+	Rid drag_source;
+};
+struct RTileItem {
+	const char* text;
+	const char* detail;
+	const char* badge;
+	Rid icon;
+	float uv[4];
+	float tint[4];
+	float icon_radius;
+	float text_color[4];
 };
 struct RLanguageDesc {
 	const char* name;
@@ -734,6 +755,10 @@ void Rwait_events(double timeout_seconds);
 void Rset_frame_callback(RFrameCallback callback, void* user_data);
 double Rget_delta_time(void);
 double Rget_time(void);
+void Rset_ui_scale(float scale);
+void Rset_vsync(int enabled);
+int Rget_vsync(void);
+float Rget_ui_scale(void);
 void Rset_animations_enabled(int enabled);
 int Rget_animations_enabled(void);
 void Rset_animation_speed(float speed);
@@ -784,12 +809,15 @@ int Rwindow_is_active(Rid window);
 void Rwindow_close(Rid window);
 void Rwindow_begin_move(Rid window);
 void Rwindow_begin_resize(Rid window, RWindowEdge edge);
+void Rwindow_set_icon(Rid window, const uint8_t* rgba, int width, int height);
 void Rwindow_set_clear_color(Rid window, float r, float g, float b, float a);
 void Rwindow_set_background(Rid window, Rid texture);
 int Rwindow_set_backdrop(Rid window, RBackdrop backdrop);
 RBackdrop Rwindow_get_backdrop(Rid window);
 int Rwindow_set_opacity(Rid window, float opacity);
 float Rwindow_get_opacity(Rid window);
+int Rwindow_set_topmost(Rid window, int topmost);
+void Rwindow_center(Rid window);
 void Rwindow_request_redraw(Rid window);
 void Rwindow_set_continuous_redraw(Rid window, int enabled);
 void Rwindow_set_close_callback(Rid window, RWindowCloseCallback callback, void* user_data);
@@ -809,6 +837,19 @@ void Rwindow_inject_key(Rid window, RKey key, int pressed, Ruint modifiers);
 void Rwindow_inject_text(Rid window, const char* text);
 int Rwindow_inject_drag(Rid window, float x, float y, int inside);
 int Rwindow_inject_drop(Rid window, float x, float y, const char* const* paths, int path_count, const char* text);
+int Rwindow_is_key_down(Rid window, RKey key);
+int Rwindow_is_mouse_button_down(Rid window, RMouseButton button);
+Ruint Rwindow_get_modifiers(Rid window);
+int Rwindow_is_mouse_inside(Rid window);
+int Rwindow_wants_text_input(Rid window);
+int Rwindow_has_popup(Rid window);
+void Rwindow_set_tab_navigation(Rid window, int enabled);
+void Rwindow_set_event_hook(Rid window, RWindowEventHook hook, void* user_data);
+int Rdrag_begin(Rid source, const char* type, const char* data, const char* label);
+int Rdrag_is_active(Rid window);
+const char* Rdrag_get_type(Rid window);
+const char* Rdrag_get_data(Rid window);
+void Rdrag_cancel(Rid window);
 void Rwindow_register_shortcut(Rid window, RKey key, Ruint modifiers, const char* action);
 void Rwindow_unregister_shortcut(Rid window, RKey key, Ruint modifiers);
 void Rtheme_apply(RTheme theme);
@@ -1012,6 +1053,7 @@ void Rprogress_bar_set_value(Rid progress_bar, float value);
 float Rprogress_bar_get_value(Rid progress_bar);
 void Rimage_set_texture(Rid image, Rid texture);
 void Rimage_set_tint_color(Rid image, float r, float g, float b, float a);
+void Rimage_set_tint_text(Rid image, int enabled);
 void Rimage_set_stretch(Rid image, RStretch stretch);
 void Rimage_set_region(Rid image, float min_u, float min_v, float max_u, float max_v);
 void Rimage_set_corner_radius(Rid image, float radius);
@@ -1069,6 +1111,19 @@ void Rtree_view_set_selected_item(Rid tree_view, Rid item);
 Rid Rtree_view_get_selected_item(Rid tree_view);
 void Rtree_view_set_selection_changed_callback(Rid tree_view, RTreeEventCallback callback, void* user_data);
 void Rtree_view_set_activated_callback(Rid tree_view, RTreeEventCallback callback, void* user_data);
+void Rtree_item_set_icon(Rid item, Rid texture, float u0, float v0, float u1, float v1);
+void Rtree_item_set_text_color(Rid item, float r, float g, float b, float a);
+void Rtree_view_set_multi_select(Rid tree_view, int enabled);
+void Rtree_item_set_selected(Rid item, int selected);
+int Rtree_item_is_selected(Rid item);
+void Rtree_view_clear_selection(Rid tree_view);
+int Rtree_view_get_selection_count(Rid tree_view);
+Rid Rtree_view_get_selection(Rid tree_view, int index);
+void Rtree_view_scroll_to_item(Rid tree_view, Rid item);
+void Rtree_view_set_context_callback(Rid tree_view, RTreeContextCallback callback, void* user_data);
+void Rtree_view_set_drag_type(Rid tree_view, const char* type);
+Rid Rtree_view_get_item_at(Rid tree_view, float local_x, float local_y);
+void Rtree_view_set_drop_highlight(Rid tree_view, Rid item, int whole_tree);
 Rid Rmenu_add_menu(Rid menu_bar_or_menu, const char* title);
 void Rmenu_set_title(Rid menu, const char* title);
 Rid Rmenu_add_item(Rid menu, const char* text);
@@ -1081,6 +1136,26 @@ int Rmenu_item_is_checked(Rid item);
 void Rmenu_item_set_clicked_callback(Rid item, RMenuItemClickedCallback callback, void* user_data);
 void Rmenu_open(Rid menu, Rid window, float x, float y);
 void Rwindow_close_popups(Rid window);
+void Rtile_view_set_items(Rid tile_view, int count, RTileItemCallback callback, void* user_data);
+void Rtile_view_refresh(Rid tile_view);
+int Rtile_view_get_count(Rid tile_view);
+void Rtile_view_set_tile_size(Rid tile_view, float width, float height, float icon_size);
+void Rtile_view_set_empty_text(Rid tile_view, const char* text);
+void Rtile_view_set_selected(Rid tile_view, int index, int selected);
+int Rtile_view_is_selected(Rid tile_view, int index);
+void Rtile_view_clear_selection(Rid tile_view);
+void Rtile_view_select_only(Rid tile_view, int index);
+int Rtile_view_get_current(Rid tile_view);
+int Rtile_view_get_selection_count(Rid tile_view);
+int Rtile_view_get_selection(Rid tile_view, int nth);
+void Rtile_view_scroll_to(Rid tile_view, int index);
+int Rtile_view_get_item_at(Rid tile_view, float local_x, float local_y);
+void Rtile_view_set_drop_highlight(Rid tile_view, int index);
+void Rtile_view_set_drag_type(Rid tile_view, const char* type);
+void Rtile_view_set_drag_data_callback(Rid tile_view, RTileDragDataCallback callback, void* user_data);
+void Rtile_view_set_selection_changed_callback(Rid tile_view, RTileEventCallback callback, void* user_data);
+void Rtile_view_set_activated_callback(Rid tile_view, RTileEventCallback callback, void* user_data);
+void Rtile_view_set_context_callback(Rid tile_view, RTileContextCallback callback, void* user_data);
 Rid Rtext_editor_create(const char* text);
 void Rtext_editor_set_text(Rid editor, const char* text);
 const char* Rtext_editor_get_text(Rid editor);
@@ -1142,6 +1217,10 @@ void Rdock_area_move_panel(Rid area, Rid panel, RDockSide side, Rid relative, fl
 void Rdock_area_close_panel(Rid area, Rid panel);
 void Rdock_area_set_panel_title(Rid area, Rid panel, const char* title);
 void Rdock_area_set_panel_closable(Rid area, Rid panel, int closable);
+void Rdock_area_hide_panel(Rid area, Rid panel);
+void Rdock_area_open_panel(Rid area, Rid panel);
+int Rdock_area_is_panel_open(Rid area, Rid panel);
+void Rdock_area_set_close_hides(Rid area, int hides);
 void Rdock_area_show_panel(Rid area, Rid panel);
 int Rdock_area_is_panel_shown(Rid area, Rid panel);
 void Rdock_area_set_movable(Rid area, int movable);
@@ -1293,6 +1372,9 @@ const char* Rfile_dialog_save(const RFileDialogDesc* desc);
 const char* Rfile_dialog_select_folder(const RFileDialogDesc* desc);
 int Rfile_dialog_get_result_count(void);
 const char* Rfile_dialog_get_result(int index);
+int Rfile_register_memory(const char* path, const void* data, size_t size, int copy);
+void Rfile_unregister_memory(const char* path);
+int Rfile_is_memory(const char* path);
 char* Rfile_read(const char* path, size_t* size);
 int Rfile_write(const char* path, const void* data, size_t size);
 Rid Rfile_browser_create(void);

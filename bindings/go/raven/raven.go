@@ -230,6 +230,7 @@ const (
 	R_CURSOR_RESIZE_NESW RCursor = 0x00B7
 	R_CURSOR_MOVE        RCursor = 0x00B8
 	R_CURSOR_NOT_ALLOWED RCursor = 0x00B9
+	R_CURSOR_NONE        RCursor = 0x00BA
 )
 
 // RKey: Keyboard keys. Printable keys use their upper-case ASCII code.
@@ -523,6 +524,7 @@ const (
 	R_WIDGET_COLOR_PICKER    RWidgetType = 0x0226
 	R_WIDGET_TIMELINE        RWidgetType = 0x0227
 	R_WIDGET_NODE_GRAPH      RWidgetType = 0x0228
+	R_WIDGET_TILE_VIEW       RWidgetType = 0x0229
 )
 
 type RHAlign int32
@@ -850,8 +852,26 @@ func GetTime() float64 {
 	return float64(C.Rget_time())
 }
 
-// SetAnimationsEnabled: R_FALSE makes every change immediate: for users who ask for reduced motion, and for
-// tests that read the state right after an input.
+// SetUiScale: Scale of the whole interface, on top of the one of the monitor (RInitDesc.ui_scale at start):
+// every window is laid out again. 0.25 .. 4.
+func SetUiScale(scale float32) {
+	C.Rset_ui_scale(C.float(scale))
+}
+
+// SetVsync: R_TRUE: every frame waits for the vertical synchronization of the screen (no tearing, no wasted
+// frames); R_FALSE: as fast as possible (RInitDesc.disable_vsync at start). Takes effect at the next frame.
+func SetVsync(enabled int) {
+	C.Rset_vsync(C.int(enabled))
+}
+
+func GetVsync() int {
+	return int(C.Rget_vsync())
+}
+
+func GetUiScale() float32 {
+	return float32(C.Rget_ui_scale())
+}
+
 func SetAnimationsEnabled(enabled int) {
 	C.Rset_animations_enabled(C.int(enabled))
 }
@@ -1068,8 +1088,6 @@ func WindowBeginResize(window ID, edge RWindowEdge) {
 	C.Rwindow_begin_resize(C.Rid(window), C.RWindowEdge(edge))
 }
 
-// WindowSetClearColor: Color behind the content. By default it is the theme color R_COLOR_WINDOW (and, with a
-// glass theme, the wallpaper of the theme).
 func WindowSetClearColor(window ID, r float32, g float32, b float32, a float32) {
 	C.Rwindow_set_clear_color(C.Rid(window), C.float(r), C.float(g), C.float(b), C.float(a))
 }
@@ -1101,6 +1119,17 @@ func WindowSetOpacity(window ID, opacity float32) int {
 
 func WindowGetOpacity(window ID) float32 {
 	return float32(C.Rwindow_get_opacity(C.Rid(window)))
+}
+
+// WindowSetTopmost: Keeps the window above the other windows (splash screens, tools). Returns: R_FALSE when
+// the window system cannot do it.
+func WindowSetTopmost(window ID, topmost int) int {
+	return int(C.Rwindow_set_topmost(C.Rid(window), C.int(topmost)))
+}
+
+// WindowCenter: Centers the window on the work area of its monitor (no task bar).
+func WindowCenter(window ID) {
+	C.Rwindow_center(C.Rid(window))
 }
 
 // WindowRequestRedraw: Asks for a new frame even if no widget changed. Thread-safe.
@@ -1162,8 +1191,79 @@ func WindowInjectDrag(window ID, x float32, y float32, inside int) int {
 	return int(C.Rwindow_inject_drag(C.Rid(window), C.float(x), C.float(y), C.int(inside)))
 }
 
-// WindowRegisterShortcut: Registers a keyboard shortcut active while the window has focus and no widget
-// handled the key. action Name of the action to fire (see Raction_bind).
+// WindowIsKeyDown: R_TRUE while the key is held down in the window (cleared when the window loses the
+// keyboard).
+func WindowIsKeyDown(window ID, key RKey) int {
+	return int(C.Rwindow_is_key_down(C.Rid(window), C.RKey(key)))
+}
+
+// WindowIsMouseButtonDown: R_TRUE while the mouse button is held down over (or captured by) the window.
+func WindowIsMouseButtonDown(window ID, button RMouseButton) int {
+	return int(C.Rwindow_is_mouse_button_down(C.Rid(window), C.RMouseButton(button)))
+}
+
+// WindowGetModifiers: Modifiers (RModifier) of the last input event.
+func WindowGetModifiers(window ID) uint32 {
+	return uint32(C.Rwindow_get_modifiers(C.Rid(window)))
+}
+
+// WindowIsMouseInside: R_TRUE while the pointer is over the client area.
+func WindowIsMouseInside(window ID) int {
+	return int(C.Rwindow_is_mouse_inside(C.Rid(window)))
+}
+
+// WindowWantsTextInput: R_TRUE when the keyboard focus is in a text input, spin box or text editor.
+func WindowWantsTextInput(window ID) int {
+	return int(C.Rwindow_wants_text_input(C.Rid(window)))
+}
+
+// WindowHasPopup: R_TRUE while a menu, list or dialog is open over the window.
+func WindowHasPopup(window ID) int {
+	return int(C.Rwindow_has_popup(C.Rid(window)))
+}
+
+// WindowSetTabNavigation: R_FALSE: Tab no longer moves the keyboard focus (the application uses it as a
+// shortcut). Default R_TRUE.
+func WindowSetTabNavigation(window ID, enabled int) {
+	C.Rwindow_set_tab_navigation(C.Rid(window), C.int(enabled))
+}
+
+// DragBegin: Starts dragging `data` from `source` (call it while a mouse button is held, typically from a
+// mouse-move event once the pointer has moved a few units). Until the button is released, the widgets with a
+// drop callback (Rwidget_set_drop_callback) under the pointer receive R_DROP_ENTER / MOVE / LEAVE and, on
+// release, R_DROP_DROPPED, with `drag_type` set and `text` = `data`. Returning R_FALSE from the callback
+// refuses the drop there. Escape cancels. `label` follows the pointer. Returns: R_FALSE when the widget is
+// not in a window.
+func DragBegin(source ID, type_ string, data string, label string) int {
+	type__ := C.CString(type_)
+	defer C.free(unsafe.Pointer(type__))
+	data_ := C.CString(data)
+	defer C.free(unsafe.Pointer(data_))
+	label_ := C.CString(label)
+	defer C.free(unsafe.Pointer(label_))
+	return int(C.Rdrag_begin(C.Rid(source), type__, data_, label_))
+}
+
+// DragIsActive: R_TRUE while a drag started by Rdrag_begin is in progress in the window.
+func DragIsActive(window ID) int {
+	return int(C.Rdrag_is_active(C.Rid(window)))
+}
+
+// DragGetType: Type of the drag in progress, or NULL.
+func DragGetType(window ID) string {
+	return C.GoString(C.Rdrag_get_type(C.Rid(window)))
+}
+
+// DragGetData: Data of the drag in progress, or NULL.
+func DragGetData(window ID) string {
+	return C.GoString(C.Rdrag_get_data(C.Rid(window)))
+}
+
+// DragCancel: Ends the drag in progress without dropping (the target receives R_DROP_LEAVE).
+func DragCancel(window ID) {
+	C.Rdrag_cancel(C.Rid(window))
+}
+
 func WindowRegisterShortcut(window ID, key RKey, modifiers uint32, action string) {
 	action_ := C.CString(action)
 	defer C.free(unsafe.Pointer(action_))
@@ -2226,6 +2326,12 @@ func ImageSetTintColor(image ID, r float32, g float32, b float32, a float32) {
 	C.Rimage_set_tint_color(C.Rid(image), C.float(r), C.float(g), C.float(b), C.float(a))
 }
 
+// ImageSetTintText: R_TRUE: the image is tinted with the text color around it (white icons that follow the
+// theme). XML: TintText.
+func ImageSetTintText(image ID, enabled int) {
+	C.Rimage_set_tint_text(C.Rid(image), C.int(enabled))
+}
+
 func ImageSetStretch(image ID, stretch RStretch) {
 	C.Rimage_set_stretch(C.Rid(image), C.RStretch(stretch))
 }
@@ -2439,6 +2545,69 @@ func TreeViewGetSelectedItem(tree_view ID) ID {
 	return ID(C.Rtree_view_get_selected_item(C.Rid(tree_view)))
 }
 
+// TreeItemSetIcon: Icon drawn before the text of the item (a region u0,v0,u1,v1 of the texture). R_INVALID_ID
+// removes it.
+func TreeItemSetIcon(item ID, texture ID, u0 float32, v0 float32, u1 float32, v1 float32) {
+	C.Rtree_item_set_icon(C.Rid(item), C.Rid(texture), C.float(u0), C.float(v0), C.float(u1), C.float(v1))
+}
+
+// TreeItemSetTextColor: Color of the text of the item; alpha 0 goes back to the theme.
+func TreeItemSetTextColor(item ID, r float32, g float32, b float32, a float32) {
+	C.Rtree_item_set_text_color(C.Rid(item), C.float(r), C.float(g), C.float(b), C.float(a))
+}
+
+// TreeViewSetMultiSelect: Several items can be selected: Ctrl + click adds or removes one, Shift + click
+// selects a range. The selection callback receives the item clicked last (the primary one,
+// Rtree_view_get_selected_item).
+func TreeViewSetMultiSelect(tree_view ID, enabled int) {
+	C.Rtree_view_set_multi_select(C.Rid(tree_view), C.int(enabled))
+}
+
+func TreeItemSetSelected(item ID, selected int) {
+	C.Rtree_item_set_selected(C.Rid(item), C.int(selected))
+}
+
+func TreeItemIsSelected(item ID) int {
+	return int(C.Rtree_item_is_selected(C.Rid(item)))
+}
+
+func TreeViewClearSelection(tree_view ID) {
+	C.Rtree_view_clear_selection(C.Rid(tree_view))
+}
+
+// TreeViewGetSelectionCount: Selected items, top to bottom.
+func TreeViewGetSelectionCount(tree_view ID) int {
+	return int(C.Rtree_view_get_selection_count(C.Rid(tree_view)))
+}
+
+func TreeViewGetSelection(tree_view ID, index int) ID {
+	return ID(C.Rtree_view_get_selection(C.Rid(tree_view), C.int(index)))
+}
+
+func TreeViewScrollToItem(tree_view ID, item ID) {
+	C.Rtree_view_scroll_to_item(C.Rid(tree_view), C.Rid(item))
+}
+
+// TreeViewSetDragType: Items can be dragged: the selection is given to Rdrag_begin with this type and, as
+// data, the handles of the items in decimal separated by spaces. NULL: no drag (default).
+func TreeViewSetDragType(tree_view ID, type_ string) {
+	type__ := C.CString(type_)
+	defer C.free(unsafe.Pointer(type__))
+	C.Rtree_view_set_drag_type(C.Rid(tree_view), type__)
+}
+
+// TreeViewGetItemAt: Item at a point relative to the tree (drop callbacks give local_x, local_y), or
+// R_INVALID_ID.
+func TreeViewGetItemAt(tree_view ID, local_x float32, local_y float32) ID {
+	return ID(C.Rtree_view_get_item_at(C.Rid(tree_view), C.float(local_x), C.float(local_y)))
+}
+
+// TreeViewSetDropHighlight: Highlights where a drop would go: an item, or the whole tree (`whole_tree`).
+// R_INVALID_ID, 0 removes it.
+func TreeViewSetDropHighlight(tree_view ID, item ID, whole_tree int) {
+	C.Rtree_view_set_drop_highlight(C.Rid(tree_view), C.Rid(item), C.int(whole_tree))
+}
+
 // MenuAddMenu: Creates a menu inside a menu bar or as a sub-menu of another menu.
 func MenuAddMenu(menu_bar_or_menu ID, title string) ID {
 	title_ := C.CString(title)
@@ -2494,6 +2663,78 @@ func MenuOpen(menu ID, window ID, x float32, y float32) {
 // WindowClosePopups: Closes every open menu and popup of the window.
 func WindowClosePopups(window ID) {
 	C.Rwindow_close_popups(C.Rid(window))
+}
+
+// TileViewRefresh: Draws the tiles again (their description changed, not their number).
+func TileViewRefresh(tile_view ID) {
+	C.Rtile_view_refresh(C.Rid(tile_view))
+}
+
+func TileViewGetCount(tile_view ID) int {
+	return int(C.Rtile_view_get_count(C.Rid(tile_view)))
+}
+
+// TileViewSetTileSize: Size of a tile (its name included) and of its icon. Default 112 x 112, icon 64.
+func TileViewSetTileSize(tile_view ID, width float32, height float32, icon_size float32) {
+	C.Rtile_view_set_tile_size(C.Rid(tile_view), C.float(width), C.float(height), C.float(icon_size))
+}
+
+func TileViewSetEmptyText(tile_view ID, text string) {
+	text_ := C.CString(text)
+	defer C.free(unsafe.Pointer(text_))
+	C.Rtile_view_set_empty_text(C.Rid(tile_view), text_)
+}
+
+func TileViewSetSelected(tile_view ID, index int, selected int) {
+	C.Rtile_view_set_selected(C.Rid(tile_view), C.int(index), C.int(selected))
+}
+
+func TileViewIsSelected(tile_view ID, index int) int {
+	return int(C.Rtile_view_is_selected(C.Rid(tile_view), C.int(index)))
+}
+
+func TileViewClearSelection(tile_view ID) {
+	C.Rtile_view_clear_selection(C.Rid(tile_view))
+}
+
+func TileViewSelectOnly(tile_view ID, index int) {
+	C.Rtile_view_select_only(C.Rid(tile_view), C.int(index))
+}
+
+// TileViewGetCurrent: The tile clicked last, or -1.
+func TileViewGetCurrent(tile_view ID) int {
+	return int(C.Rtile_view_get_current(C.Rid(tile_view)))
+}
+
+func TileViewGetSelectionCount(tile_view ID) int {
+	return int(C.Rtile_view_get_selection_count(C.Rid(tile_view)))
+}
+
+// TileViewGetSelection: Index of the nth selected tile, in order.
+func TileViewGetSelection(tile_view ID, nth int) int {
+	return int(C.Rtile_view_get_selection(C.Rid(tile_view), C.int(nth)))
+}
+
+func TileViewScrollTo(tile_view ID, index int) {
+	C.Rtile_view_scroll_to(C.Rid(tile_view), C.int(index))
+}
+
+// TileViewGetItemAt: Tile at a point relative to the widget (drop callbacks give local_x, local_y), or -1.
+func TileViewGetItemAt(tile_view ID, local_x float32, local_y float32) int {
+	return int(C.Rtile_view_get_item_at(C.Rid(tile_view), C.float(local_x), C.float(local_y)))
+}
+
+// TileViewSetDropHighlight: Highlights the tile a drop would go to; -1 removes it.
+func TileViewSetDropHighlight(tile_view ID, index int) {
+	C.Rtile_view_set_drop_highlight(C.Rid(tile_view), C.int(index))
+}
+
+// TileViewSetDragType: Tiles can be dragged: the selected tiles are given to Rdrag_begin with this type and,
+// as data, their indices separated by spaces.
+func TileViewSetDragType(tile_view ID, type_ string) {
+	type__ := C.CString(type_)
+	defer C.free(unsafe.Pointer(type__))
+	C.Rtile_view_set_drag_type(C.Rid(tile_view), type__)
 }
 
 // TextEditorCreate: text Initial content, or NULL.
@@ -2839,6 +3080,31 @@ func DockAreaSetPanelTitle(area ID, panel ID, title string) {
 // default.
 func DockAreaSetPanelClosable(area ID, panel ID, closable int) {
 	C.Rdock_area_set_panel_closable(C.Rid(area), C.Rid(panel), C.int(closable))
+}
+
+// DockAreaHidePanel: Takes a panel out of the arrangement without deleting it (a window of an application
+// closed from its menu). Its tab disappears and its neighbours take its place; the area remembers where it
+// was.
+func DockAreaHidePanel(area ID, panel ID) {
+	C.Rdock_area_hide_panel(C.Rid(area), C.Rid(panel))
+}
+
+// DockAreaOpenPanel: Puts a hidden panel back where it was, and brings its tab to the front (also for a panel
+// that is not hidden).
+func DockAreaOpenPanel(area ID, panel ID) {
+	C.Rdock_area_open_panel(C.Rid(area), C.Rid(panel))
+}
+
+// DockAreaIsPanelOpen: Returns: R_TRUE when the panel is in the arrangement (not hidden), shown or behind
+// another tab.
+func DockAreaIsPanelOpen(area ID, panel ID) int {
+	return int(C.Rdock_area_is_panel_open(C.Rid(area), C.Rid(panel)))
+}
+
+// DockAreaSetCloseHides: R_TRUE: the close button of a tab hides its panel (Rdock_area_hide_panel) instead of
+// deleting it. XML: CloseHides="true". The close callback is asked first either way.
+func DockAreaSetCloseHides(area ID, hides int) {
+	C.Rdock_area_set_close_hides(C.Rid(area), C.int(hides))
 }
 
 // DockAreaShowPanel: Brings the tab of a panel to the front.
@@ -3569,6 +3835,36 @@ func FileDialogGetResult(index int) string {
 	return C.GoString(C.Rfile_dialog_get_result(C.int(index)))
 }
 
+// FileRegisterMemory: Registers a file held in memory under a path: every file Raven reads (XML documents and
+// their Include, Source and Font attributes, themes, textures, fonts, Rfile_read) is looked up here first, so
+// that resources embedded in the executable need no file beside it. A relative path names the file as it is
+// written in the XML once joined to the folder of the document that names it (Rxml_set_base_path for a
+// document given as text), e.g. "ui/editor.xml". Paths compare with '/' and '\\' alike. Memory files are not
+// watched for live reload. Call it after Rinit; Rshutdown forgets every file. copy R_TRUE: Raven keeps a
+// copy; R_FALSE: `data` must outlive Raven (static data).
+func FileRegisterMemory(path string, data []byte, copy_ int) int {
+	path_ := C.CString(path)
+	defer C.free(unsafe.Pointer(path_))
+	var data_ unsafe.Pointer
+	if len(data) > 0 {
+		data_ = unsafe.Pointer(&data[0])
+	}
+	return int(C.Rfile_register_memory(path_, data_, C.size_t(len(data)), C.int(copy_)))
+}
+
+func FileUnregisterMemory(path string) {
+	path_ := C.CString(path)
+	defer C.free(unsafe.Pointer(path_))
+	C.Rfile_unregister_memory(path_)
+}
+
+// FileIsMemory: R_TRUE when `path` is a file registered with Rfile_register_memory.
+func FileIsMemory(path string) int {
+	path_ := C.CString(path)
+	defer C.free(unsafe.Pointer(path_))
+	return int(C.Rfile_is_memory(path_))
+}
+
 func FileWrite(path string, data []byte) int {
 	path_ := C.CString(path)
 	defer C.free(unsafe.Pointer(path_))
@@ -4044,27 +4340,30 @@ func XmlGetAttributeCount(tag string) int {
 // Rinit_ex, Rset_allocator, Rallocator_get_system, Rmemory_alloc, Rmemory_realloc, Rmemory_free
 // Rmemory_get_stats, Rset_frame_callback, Rtask_post, Rtask_run_async, Rparallel_for, Rtimer_create
 // Raction_bind, Raction_set_default_handler, Rerror_get_last, Rerror_set_callback, Rwindow_get_frame_stats
-// Rwindow_set_close_callback, Rwindow_set_resize_callback, Rwindow_set_drop_callback
+// Rwindow_set_icon, Rwindow_set_close_callback, Rwindow_set_resize_callback, Rwindow_set_drop_callback
 // Rwindow_set_user_handle, Rwindow_get_user_handle, Rwindow_get_native_handle, Rwindow_capture
-// Rwindow_inject_drop, Rtexture_create_from_pixels, Rtexture_update, Rimage_decode, Rpixels_free
-// Rwidget_set_user_handle, Rwidget_get_user_handle, Rwidget_set_destroy_callback, Rwidget_set_event_callback
-// Rwidget_set_drop_callback, Rtab_view_set_changed_callback, Rexpander_set_changed_callback
-// Rlabel_set_link_callback, Rbutton_set_clicked_callback, Rcheckbox_set_changed_callback
-// Rslider_set_changed_callback, Rtext_input_set_changed_callback, Rtext_input_set_committed_callback
-// Rspin_box_set_changed_callback, Rcombo_box_set_changed_callback, Rlist_view_set_virtual_items
-// Rlist_view_set_selection_changed_callback, Rlist_view_set_activated_callback, Rtree_item_set_user_handle
-// Rtree_item_get_user_handle, Rtree_view_set_selection_changed_callback, Rtree_view_set_activated_callback
-// Rmenu_item_set_clicked_callback, Rlanguage_register, Rlanguage_get, Rtext_editor_set_completion_callback
-// Rtext_editor_set_changed_callback, Rdock_area_set_close_callback, Rdock_area_set_changed_callback
-// Risland_set_changed_callback, Rcolor_picker_set_changed_callback, Rtimeline_set_time_callback
-// Rtimeline_set_changed_callback, Rtimeline_set_selection_callback, Rtimeline_set_activated_callback
-// Rtimeline_set_removed_callback, Rnode_graph_set_node_user_data, Rnode_graph_get_node_user_data
-// Rnode_graph_set_connect_callback, Rnode_graph_set_linked_callback, Rnode_graph_set_unlinked_callback
-// Rnode_graph_set_moved_callback, Rnode_graph_set_selection_callback, Rnode_graph_set_removed_callback
-// Rdialog_open, Rfile_dialog_open, Rfile_dialog_save, Rfile_dialog_select_folder, Rfile_read
-// Rfile_browser_set_filters, Rfile_browser_set_accepted_callback, Rfile_browser_set_cancelled_callback
-// Rfile_browser_set_selection_changed_callback, Rviewport_set_draw_callback, Rviewport_get_native_handle
-// Rviewport_set_resize_callback, Rcustom_set_paint_callback, Rcustom_set_measure_callback, Rdraw_rect
-// Rdraw_rect_outline, Rdraw_circle, Rdraw_line, Rdraw_curve, Rdraw_triangle, Rdraw_image, Rdraw_text
-// Rdraw_glass, Rdraw_spring, Rspring_kick, Rspring_set, Rdraw_push_clip_rect, Rdraw_pop_clip_rect
-// Rxml_set_reload_callback, Rxml_register_tag, Rxml_document_parse, Rxml_get_attribute_info
+// Rwindow_inject_drop, Rwindow_set_event_hook, Rtexture_create_from_pixels, Rtexture_update, Rimage_decode
+// Rpixels_free, Rwidget_set_user_handle, Rwidget_get_user_handle, Rwidget_set_destroy_callback
+// Rwidget_set_event_callback, Rwidget_set_drop_callback, Rtab_view_set_changed_callback
+// Rexpander_set_changed_callback, Rlabel_set_link_callback, Rbutton_set_clicked_callback
+// Rcheckbox_set_changed_callback, Rslider_set_changed_callback, Rtext_input_set_changed_callback
+// Rtext_input_set_committed_callback, Rspin_box_set_changed_callback, Rcombo_box_set_changed_callback
+// Rlist_view_set_virtual_items, Rlist_view_set_selection_changed_callback, Rlist_view_set_activated_callback
+// Rtree_item_set_user_handle, Rtree_item_get_user_handle, Rtree_view_set_selection_changed_callback
+// Rtree_view_set_activated_callback, Rtree_view_set_context_callback, Rmenu_item_set_clicked_callback
+// Rtile_view_set_items, Rtile_view_set_drag_data_callback, Rtile_view_set_selection_changed_callback
+// Rtile_view_set_activated_callback, Rtile_view_set_context_callback, Rlanguage_register, Rlanguage_get
+// Rtext_editor_set_completion_callback, Rtext_editor_set_changed_callback, Rdock_area_set_close_callback
+// Rdock_area_set_changed_callback, Risland_set_changed_callback, Rcolor_picker_set_changed_callback
+// Rtimeline_set_time_callback, Rtimeline_set_changed_callback, Rtimeline_set_selection_callback
+// Rtimeline_set_activated_callback, Rtimeline_set_removed_callback, Rnode_graph_set_node_user_data
+// Rnode_graph_get_node_user_data, Rnode_graph_set_connect_callback, Rnode_graph_set_linked_callback
+// Rnode_graph_set_unlinked_callback, Rnode_graph_set_moved_callback, Rnode_graph_set_selection_callback
+// Rnode_graph_set_removed_callback, Rdialog_open, Rfile_dialog_open, Rfile_dialog_save
+// Rfile_dialog_select_folder, Rfile_read, Rfile_browser_set_filters, Rfile_browser_set_accepted_callback
+// Rfile_browser_set_cancelled_callback, Rfile_browser_set_selection_changed_callback
+// Rviewport_set_draw_callback, Rviewport_get_native_handle, Rviewport_set_resize_callback
+// Rcustom_set_paint_callback, Rcustom_set_measure_callback, Rdraw_rect, Rdraw_rect_outline, Rdraw_circle
+// Rdraw_line, Rdraw_curve, Rdraw_triangle, Rdraw_image, Rdraw_text, Rdraw_glass, Rdraw_spring, Rspring_kick
+// Rspring_set, Rdraw_push_clip_rect, Rdraw_pop_clip_rect, Rxml_set_reload_callback, Rxml_register_tag
+// Rxml_document_parse, Rxml_get_attribute_info

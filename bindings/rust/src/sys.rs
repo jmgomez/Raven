@@ -130,6 +130,8 @@ pub const R_CURSOR_RESIZE_NWSE: RCursor = 0x00B6;
 pub const R_CURSOR_RESIZE_NESW: RCursor = 0x00B7;
 pub const R_CURSOR_MOVE: RCursor = 0x00B8;
 pub const R_CURSOR_NOT_ALLOWED: RCursor = 0x00B9;
+/// No pointer at all (a game that hides it). Windows; elsewhere the arrow.
+pub const R_CURSOR_NONE: RCursor = 0x00BA;
 
 /// Keyboard keys. Printable keys use their upper-case ASCII code.
 pub type RKey = c_int;
@@ -470,6 +472,8 @@ pub const R_WIDGET_COLOR_PICKER: RWidgetType = 0x0226;
 pub const R_WIDGET_TIMELINE: RWidgetType = 0x0227;
 /// Nodes linked by wires, on a canvas that pans and zooms.
 pub const R_WIDGET_NODE_GRAPH: RWidgetType = 0x0228;
+/// Grid of tiles (an icon over a name), virtualized. Slate: STileView.
+pub const R_WIDGET_TILE_VIEW: RWidgetType = 0x0229;
 
 pub type RHAlign = c_int;
 pub const R_HALIGN_FILL: RHAlign = 0x0240;
@@ -737,6 +741,11 @@ pub type RDropCallback = Option<unsafe extern "C" fn(target: Rid, event: *const 
 pub type RWindowCloseCallback = Option<unsafe extern "C" fn(window: Rid, user_data: *mut c_void) -> c_int>;
 /// Called after the window was resized. Sizes are in logical units.
 pub type RWindowResizeCallback = Option<unsafe extern "C" fn(window: Rid, width: c_int, height: c_int, user_data: *mut c_void)>;
+/// Sees every input event of the window (mouse, wheel, keys, text)
+/// before any widget, with `target` set to the widget under the pointer.
+/// Returning R_TRUE consumes the event: the widgets do not get it. The
+/// state read by Rwindow_is_key_down is updated either way.
+pub type RWindowEventHook = Option<unsafe extern "C" fn(window: Rid, event: *const REvent, user_data: *mut c_void) -> c_int>;
 /// Called once when the widget is gone: deleted by the application,
 /// with its parent or its window, or by Rshutdown. The place to release
 /// what belonged to it (a texture, a connection). The handle it receives
@@ -767,7 +776,21 @@ pub type RComboBoxChangedCallback = Option<unsafe extern "C" fn(combo_box: Rid, 
 pub type RListItemTextCallback = Option<unsafe extern "C" fn(list_view: Rid, index: c_int, user_data: *mut c_void) -> *const c_char>;
 pub type RListEventCallback = Option<unsafe extern "C" fn(list_view: Rid, index: c_int, user_data: *mut c_void)>;
 pub type RTreeEventCallback = Option<unsafe extern "C" fn(tree_view: Rid, item: Rid, user_data: *mut c_void)>;
+/// Right click: `item` is the item under the pointer (selected
+/// first), or R_INVALID_ID in the empty space; x, y in the window, for Rmenu_open.
+pub type RTreeContextCallback = Option<unsafe extern "C" fn(tree_view: Rid, item: Rid, x: f32, y: f32, user_data: *mut c_void)>;
 pub type RMenuItemClickedCallback = Option<unsafe extern "C" fn(item: Rid, user_data: *mut c_void)>;
+/// Fills `item` for tile `index`. Called on the UI thread, only for the tiles in view.
+pub type RTileItemCallback = Option<unsafe extern "C" fn(tile_view: Rid, index: c_int, item: *mut RTileItem, user_data: *mut c_void)>;
+/// Selection change (`index`: the current tile, or -1) and activation (double click, Enter).
+pub type RTileEventCallback = Option<unsafe extern "C" fn(tile_view: Rid, index: c_int, user_data: *mut c_void)>;
+/// Right click: the tile under the pointer (selected first), or -1 in the empty space; x, y in the window.
+pub type RTileContextCallback = Option<unsafe extern "C" fn(tile_view: Rid, index: c_int, x: f32, y: f32, user_data: *mut c_void)>;
+/// The data of a drag, given by the application (paths of files...)
+/// instead of the indices: the dragged tiles are the selected ones
+/// (Rtile_view_get_selection). The text returned is copied; NULL keeps
+/// the indices.
+pub type RTileDragDataCallback = Option<unsafe extern "C" fn(tile_view: Rid, user_data: *mut c_void) -> *const c_char>;
 /// Called each time the editor gathers its proposals, with the
 /// start of the word being typed: add your own with
 /// Rtext_editor_add_completion (the fields of a structure, the answers of
@@ -967,8 +990,31 @@ pub struct RDropEvent {
     /// Dropped files and folders, as UTF-8 paths.
     pub paths: *const *const c_char,
     pub path_count: c_int,
-    /// Dropped text when it is not files, or NULL.
+    /// Dropped text when it is not files, or NULL. For a drag inside the application: its data.
     pub text: *const c_char,
+    /// Drag inside the application (Rdrag_begin): its type, else NULL. Set in every phase.
+    pub drag_type: *const c_char,
+    /// Widget the drag started from, or R_INVALID_ID.
+    pub drag_source: Rid,
+}
+
+/// What a tile shows, filled by the application when the tile is drawn.
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct RTileItem {
+    /// Name under the icon (valid until the callback returns).
+    pub text: *const c_char,
+    /// Second line, dimmer, or NULL.
+    pub detail: *const c_char,
+    /// Small text at the top right of the tile, or NULL.
+    pub badge: *const c_char,
+    /// Icon texture (R_INVALID_ID: none), the region of it and its tint (white by default).
+    pub icon: Rid,
+    pub uv: [f32; 4],
+    pub tint: [f32; 4],
+    pub icon_radius: f32,
+    /// Color of the name; alpha 0 = the theme.
+    pub text_color: [f32; 4],
 }
 
 /// What the editor knows of a language. Every field but the name may be NULL.
@@ -1175,8 +1221,15 @@ extern "C" {
     pub fn Rget_delta_time() -> f64;
     /// Returns: Seconds elapsed since Rinit, from a monotonic clock. Thread-safe.
     pub fn Rget_time() -> f64;
-    /// R_FALSE makes every change immediate: for users who ask for
-    /// reduced motion, and for tests that read the state right after an input.
+    /// Scale of the whole interface, on top of the one of the monitor
+    /// (RInitDesc.ui_scale at start): every window is laid out again. 0.25 .. 4.
+    pub fn Rset_ui_scale(scale: f32);
+    /// R_TRUE: every frame waits for the vertical synchronization of the
+    /// screen (no tearing, no wasted frames); R_FALSE: as fast as possible
+    /// (RInitDesc.disable_vsync at start). Takes effect at the next frame.
+    pub fn Rset_vsync(enabled: c_int);
+    pub fn Rget_vsync() -> c_int;
+    pub fn Rget_ui_scale() -> f32;
     pub fn Rset_animations_enabled(enabled: c_int);
     pub fn Rget_animations_enabled() -> c_int;
     /// Multiplies the speed of every animation. 1 is the default, 0.25 a slow motion.
@@ -1270,8 +1323,10 @@ extern "C" {
     /// it by themselves.
     pub fn Rwindow_begin_move(window: Rid);
     pub fn Rwindow_begin_resize(window: Rid, edge: RWindowEdge);
-    /// Color behind the content. By default it is the theme color
-    /// R_COLOR_WINDOW (and, with a glass theme, the wallpaper of the theme).
+    /// Icon of the window (title bar, task bar), from tightly packed
+    /// RGBA8 pixels; NULL goes back to the default: on Windows the first icon
+    /// of the executable, when it has one. Windows and X11.
+    pub fn Rwindow_set_icon(window: Rid, rgba: *const u8, width: c_int, height: c_int);
     pub fn Rwindow_set_clear_color(window: Rid, r: f32, g: f32, b: f32, a: f32);
     /// Image drawn behind the content, scaled to cover the window:
     /// what the glass of a glass theme looks through. R_INVALID_ID removes it.
@@ -1290,6 +1345,11 @@ extern "C" {
     /// Returns: R_FALSE when the window system cannot do it.
     pub fn Rwindow_set_opacity(window: Rid, opacity: f32) -> c_int;
     pub fn Rwindow_get_opacity(window: Rid) -> f32;
+    /// Keeps the window above the other windows (splash screens, tools).
+    /// Returns: R_FALSE when the window system cannot do it.
+    pub fn Rwindow_set_topmost(window: Rid, topmost: c_int) -> c_int;
+    /// Centers the window on the work area of its monitor (no task bar).
+    pub fn Rwindow_center(window: Rid);
     /// Asks for a new frame even if no widget changed. Thread-safe.
     pub fn Rwindow_request_redraw(window: Rid);
     /// R_TRUE redraws the window every frame (games, live viewports).
@@ -1329,9 +1389,38 @@ extern "C" {
     pub fn Rwindow_inject_drag(window: Rid, x: f32, y: f32, inside: c_int) -> c_int;
     /// Drops files and / or text at a position. Returns R_TRUE when a target took them.
     pub fn Rwindow_inject_drop(window: Rid, x: f32, y: f32, paths: *const *const c_char, path_count: c_int, text: *const c_char) -> c_int;
-    /// Registers a keyboard shortcut active while the window has focus and
-    /// no widget handled the key.
-    /// action Name of the action to fire (see Raction_bind).
+    /// R_TRUE while the key is held down in the window (cleared when the window loses the keyboard).
+    pub fn Rwindow_is_key_down(window: Rid, key: RKey) -> c_int;
+    /// R_TRUE while the mouse button is held down over (or captured by) the window.
+    pub fn Rwindow_is_mouse_button_down(window: Rid, button: RMouseButton) -> c_int;
+    /// Modifiers (RModifier) of the last input event.
+    pub fn Rwindow_get_modifiers(window: Rid) -> u32;
+    /// R_TRUE while the pointer is over the client area.
+    pub fn Rwindow_is_mouse_inside(window: Rid) -> c_int;
+    /// R_TRUE when the keyboard focus is in a text input, spin box or text editor.
+    pub fn Rwindow_wants_text_input(window: Rid) -> c_int;
+    /// R_TRUE while a menu, list or dialog is open over the window.
+    pub fn Rwindow_has_popup(window: Rid) -> c_int;
+    /// R_FALSE: Tab no longer moves the keyboard focus (the application uses it as a shortcut). Default R_TRUE.
+    pub fn Rwindow_set_tab_navigation(window: Rid, enabled: c_int);
+    pub fn Rwindow_set_event_hook(window: Rid, hook: RWindowEventHook, user_data: *mut c_void);
+    /// Starts dragging `data` from `source` (call it while a mouse button
+    /// is held, typically from a mouse-move event once the pointer has moved
+    /// a few units). Until the button is released, the widgets with a drop
+    /// callback (Rwidget_set_drop_callback) under the pointer receive
+    /// R_DROP_ENTER / MOVE / LEAVE and, on release, R_DROP_DROPPED, with
+    /// `drag_type` set and `text` = `data`. Returning R_FALSE from the callback
+    /// refuses the drop there. Escape cancels. `label` follows the pointer.
+    /// Returns: R_FALSE when the widget is not in a window.
+    pub fn Rdrag_begin(source: Rid, type_: *const c_char, data: *const c_char, label: *const c_char) -> c_int;
+    /// R_TRUE while a drag started by Rdrag_begin is in progress in the window.
+    pub fn Rdrag_is_active(window: Rid) -> c_int;
+    /// Type of the drag in progress, or NULL.
+    pub fn Rdrag_get_type(window: Rid) -> *const c_char;
+    /// Data of the drag in progress, or NULL.
+    pub fn Rdrag_get_data(window: Rid) -> *const c_char;
+    /// Ends the drag in progress without dropping (the target receives R_DROP_LEAVE).
+    pub fn Rdrag_cancel(window: Rid);
     pub fn Rwindow_register_shortcut(window: Rid, key: RKey, modifiers: u32, action: *const c_char);
     pub fn Rwindow_unregister_shortcut(window: Rid, key: RKey, modifiers: u32);
     /// Switches to a built-in theme: replaces every theme color and
@@ -1781,6 +1870,8 @@ extern "C" {
     pub fn Rprogress_bar_get_value(progress_bar: Rid) -> f32;
     pub fn Rimage_set_texture(image: Rid, texture: Rid);
     pub fn Rimage_set_tint_color(image: Rid, r: f32, g: f32, b: f32, a: f32);
+    /// R_TRUE: the image is tinted with the text color around it (white icons that follow the theme). XML: TintText.
+    pub fn Rimage_set_tint_text(image: Rid, enabled: c_int);
     pub fn Rimage_set_stretch(image: Rid, stretch: RStretch);
     /// Part of the texture to show, in UV coordinates. Default: 0, 0, 1, 1.
     pub fn Rimage_set_region(image: Rid, min_u: f32, min_v: f32, max_u: f32, max_v: f32);
@@ -1858,6 +1949,30 @@ extern "C" {
     pub fn Rtree_view_set_selection_changed_callback(tree_view: Rid, callback: RTreeEventCallback, user_data: *mut c_void);
     /// Called on double click or Enter. This also fires the action of the widget.
     pub fn Rtree_view_set_activated_callback(tree_view: Rid, callback: RTreeEventCallback, user_data: *mut c_void);
+    /// Icon drawn before the text of the item (a region u0,v0,u1,v1 of the texture). R_INVALID_ID removes it.
+    pub fn Rtree_item_set_icon(item: Rid, texture: Rid, u0: f32, v0: f32, u1: f32, v1: f32);
+    /// Color of the text of the item; alpha 0 goes back to the theme.
+    pub fn Rtree_item_set_text_color(item: Rid, r: f32, g: f32, b: f32, a: f32);
+    /// Several items can be selected: Ctrl + click adds or removes one,
+    /// Shift + click selects a range. The selection callback receives the item
+    /// clicked last (the primary one, Rtree_view_get_selected_item).
+    pub fn Rtree_view_set_multi_select(tree_view: Rid, enabled: c_int);
+    pub fn Rtree_item_set_selected(item: Rid, selected: c_int);
+    pub fn Rtree_item_is_selected(item: Rid) -> c_int;
+    pub fn Rtree_view_clear_selection(tree_view: Rid);
+    /// Selected items, top to bottom.
+    pub fn Rtree_view_get_selection_count(tree_view: Rid) -> c_int;
+    pub fn Rtree_view_get_selection(tree_view: Rid, index: c_int) -> Rid;
+    pub fn Rtree_view_scroll_to_item(tree_view: Rid, item: Rid);
+    pub fn Rtree_view_set_context_callback(tree_view: Rid, callback: RTreeContextCallback, user_data: *mut c_void);
+    /// Items can be dragged: the selection is given to Rdrag_begin with
+    /// this type and, as data, the handles of the items in decimal separated
+    /// by spaces. NULL: no drag (default).
+    pub fn Rtree_view_set_drag_type(tree_view: Rid, type_: *const c_char);
+    /// Item at a point relative to the tree (drop callbacks give local_x, local_y), or R_INVALID_ID.
+    pub fn Rtree_view_get_item_at(tree_view: Rid, local_x: f32, local_y: f32) -> Rid;
+    /// Highlights where a drop would go: an item, or the whole tree (`whole_tree`). R_INVALID_ID, 0 removes it.
+    pub fn Rtree_view_set_drop_highlight(tree_view: Rid, item: Rid, whole_tree: c_int);
     /// Creates a menu inside a menu bar or as a sub-menu of another menu.
     pub fn Rmenu_add_menu(menu_bar_or_menu: Rid, title: *const c_char) -> Rid;
     pub fn Rmenu_set_title(menu: Rid, title: *const c_char);
@@ -1875,6 +1990,35 @@ extern "C" {
     pub fn Rmenu_open(menu: Rid, window: Rid, x: f32, y: f32);
     /// Closes every open menu and popup of the window.
     pub fn Rwindow_close_popups(window: Rid);
+    /// Gives the tiles: `count` of them, described by `callback`. The selection is cleared.
+    pub fn Rtile_view_set_items(tile_view: Rid, count: c_int, callback: RTileItemCallback, user_data: *mut c_void);
+    /// Draws the tiles again (their description changed, not their number).
+    pub fn Rtile_view_refresh(tile_view: Rid);
+    pub fn Rtile_view_get_count(tile_view: Rid) -> c_int;
+    /// Size of a tile (its name included) and of its icon. Default 112 x 112, icon 64.
+    pub fn Rtile_view_set_tile_size(tile_view: Rid, width: f32, height: f32, icon_size: f32);
+    pub fn Rtile_view_set_empty_text(tile_view: Rid, text: *const c_char);
+    pub fn Rtile_view_set_selected(tile_view: Rid, index: c_int, selected: c_int);
+    pub fn Rtile_view_is_selected(tile_view: Rid, index: c_int) -> c_int;
+    pub fn Rtile_view_clear_selection(tile_view: Rid);
+    pub fn Rtile_view_select_only(tile_view: Rid, index: c_int);
+    /// The tile clicked last, or -1.
+    pub fn Rtile_view_get_current(tile_view: Rid) -> c_int;
+    pub fn Rtile_view_get_selection_count(tile_view: Rid) -> c_int;
+    /// Index of the nth selected tile, in order.
+    pub fn Rtile_view_get_selection(tile_view: Rid, nth: c_int) -> c_int;
+    pub fn Rtile_view_scroll_to(tile_view: Rid, index: c_int);
+    /// Tile at a point relative to the widget (drop callbacks give local_x, local_y), or -1.
+    pub fn Rtile_view_get_item_at(tile_view: Rid, local_x: f32, local_y: f32) -> c_int;
+    /// Highlights the tile a drop would go to; -1 removes it.
+    pub fn Rtile_view_set_drop_highlight(tile_view: Rid, index: c_int);
+    /// Tiles can be dragged: the selected tiles are given to Rdrag_begin
+    /// with this type and, as data, their indices separated by spaces.
+    pub fn Rtile_view_set_drag_type(tile_view: Rid, type_: *const c_char);
+    pub fn Rtile_view_set_drag_data_callback(tile_view: Rid, callback: RTileDragDataCallback, user_data: *mut c_void);
+    pub fn Rtile_view_set_selection_changed_callback(tile_view: Rid, callback: RTileEventCallback, user_data: *mut c_void);
+    pub fn Rtile_view_set_activated_callback(tile_view: Rid, callback: RTileEventCallback, user_data: *mut c_void);
+    pub fn Rtile_view_set_context_callback(tile_view: Rid, callback: RTileContextCallback, user_data: *mut c_void);
     /// text Initial content, or NULL.
     pub fn Rtext_editor_create(text: *const c_char) -> Rid;
     /// Replaces the whole text. The history of undo is cleared; the changed callback is not called.
@@ -2011,6 +2155,18 @@ extern "C" {
     pub fn Rdock_area_set_panel_title(area: Rid, panel: Rid, title: *const c_char);
     /// R_FALSE removes the close button of the tab of a panel. Panels can be closed by default.
     pub fn Rdock_area_set_panel_closable(area: Rid, panel: Rid, closable: c_int);
+    /// Takes a panel out of the arrangement without deleting it (a
+    /// window of an application closed from its menu). Its tab disappears
+    /// and its neighbours take its place; the area remembers where it was.
+    pub fn Rdock_area_hide_panel(area: Rid, panel: Rid);
+    /// Puts a hidden panel back where it was, and brings its tab to the front (also for a panel that is not hidden).
+    pub fn Rdock_area_open_panel(area: Rid, panel: Rid);
+    /// Returns: R_TRUE when the panel is in the arrangement (not hidden), shown or behind another tab.
+    pub fn Rdock_area_is_panel_open(area: Rid, panel: Rid) -> c_int;
+    /// R_TRUE: the close button of a tab hides its panel
+    /// (Rdock_area_hide_panel) instead of deleting it. XML: CloseHides="true".
+    /// The close callback is asked first either way.
+    pub fn Rdock_area_set_close_hides(area: Rid, hides: c_int);
     /// Brings the tab of a panel to the front.
     pub fn Rdock_area_show_panel(area: Rid, panel: Rid);
     /// Returns: R_TRUE when the panel is the one shown in its group of tabs.
@@ -2289,6 +2445,20 @@ extern "C" {
     /// What the last file dialog returned: several paths with R_FILE_DIALOG_MULTIPLE.
     pub fn Rfile_dialog_get_result_count() -> c_int;
     pub fn Rfile_dialog_get_result(index: c_int) -> *const c_char;
+    /// Registers a file held in memory under a path: every file Raven
+    /// reads (XML documents and their Include, Source and Font attributes,
+    /// themes, textures, fonts, Rfile_read) is looked up here first, so that
+    /// resources embedded in the executable need no file beside it. A relative
+    /// path names the file as it is written in the XML once joined to the
+    /// folder of the document that names it (Rxml_set_base_path for a
+    /// document given as text), e.g. "ui/editor.xml". Paths compare with '/'
+    /// and '\\' alike. Memory files are not watched for live reload. Call it
+    /// after Rinit; Rshutdown forgets every file.
+    /// copy R_TRUE: Raven keeps a copy; R_FALSE: `data` must outlive Raven (static data).
+    pub fn Rfile_register_memory(path: *const c_char, data: *const c_void, size: usize, copy: c_int) -> c_int;
+    pub fn Rfile_unregister_memory(path: *const c_char);
+    /// R_TRUE when `path` is a file registered with Rfile_register_memory.
+    pub fn Rfile_is_memory(path: *const c_char) -> c_int;
     /// Whole files, with UTF-8 paths on every platform.
     /// Returns: Rfile_read: the content followed by a '\0', to release with
     /// Rmemory_free; NULL when the file cannot be read. `size` may be NULL.

@@ -189,6 +189,10 @@ namespace Raven
         R_CURSOR_RESIZE_NESW = 0x00B7,
         R_CURSOR_MOVE = 0x00B8,
         R_CURSOR_NOT_ALLOWED = 0x00B9,
+        /// <summary>
+        /// No pointer at all (a game that hides it). Windows; elsewhere the arrow.
+        /// </summary>
+        R_CURSOR_NONE = 0x00BA,
     }
 
     /// <summary>
@@ -693,6 +697,10 @@ namespace Raven
         /// Nodes linked by wires, on a canvas that pans and zooms.
         /// </summary>
         R_WIDGET_NODE_GRAPH = 0x0228,
+        /// <summary>
+        /// Grid of tiles (an icon over a name), virtualized. Slate: STileView.
+        /// </summary>
+        R_WIDGET_TILE_VIEW = 0x0229,
     }
 
     public enum RHAlign : int
@@ -1319,9 +1327,51 @@ namespace Raven
         public IntPtr paths;
         public int path_count;
         /// <summary>
-        /// Dropped text when it is not files, or NULL.
+        /// Dropped text when it is not files, or NULL. For a drag inside the application: its data.
         /// </summary>
         public IntPtr text;
+        /// <summary>
+        /// Drag inside the application (Rdrag_begin): its type, else NULL. Set in every phase.
+        /// </summary>
+        public IntPtr drag_type;
+        /// <summary>
+        /// Widget the drag started from, or R_INVALID_ID.
+        /// </summary>
+        public uint drag_source;
+    }
+
+    /// <summary>
+    /// What a tile shows, filled by the application when the tile is drawn.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RTileItem
+    {
+        /// <summary>
+        /// Name under the icon (valid until the callback returns).
+        /// </summary>
+        public IntPtr text;
+        /// <summary>
+        /// Second line, dimmer, or NULL.
+        /// </summary>
+        public IntPtr detail;
+        /// <summary>
+        /// Small text at the top right of the tile, or NULL.
+        /// </summary>
+        public IntPtr badge;
+        /// <summary>
+        /// Icon texture (R_INVALID_ID: none), the region of it and its tint (white by default).
+        /// </summary>
+        public uint icon;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+        public float[] uv;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+        public float[] tint;
+        public float icon_radius;
+        /// <summary>
+        /// Color of the name; alpha 0 = the theme.
+        /// </summary>
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+        public float[] text_color;
     }
 
     /// <summary>
@@ -1600,6 +1650,15 @@ namespace Raven
     public delegate void RWindowResizeCallback(uint window, int width, int height, IntPtr user_data);
 
     /// <summary>
+    /// Sees every input event of the window (mouse, wheel, keys, text)
+    /// before any widget, with `target` set to the widget under the pointer.
+    /// Returning R_TRUE consumes the event: the widgets do not get it. The
+    /// state read by Rwindow_is_key_down is updated either way.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate int RWindowEventHook(uint window, ref REvent @event, IntPtr user_data);
+
+    /// <summary>
     /// Called once when the widget is gone: deleted by the application,
     /// with its parent or its window, or by Rshutdown. The place to release
     /// what belonged to it (a texture, a connection). The handle it receives
@@ -1665,8 +1724,42 @@ namespace Raven
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void RTreeEventCallback(uint tree_view, uint item, IntPtr user_data);
 
+    /// <summary>
+    /// Right click: `item` is the item under the pointer (selected
+    /// first), or R_INVALID_ID in the empty space; x, y in the window, for Rmenu_open.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RTreeContextCallback(uint tree_view, uint item, float x, float y, IntPtr user_data);
+
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void RMenuItemClickedCallback(uint item, IntPtr user_data);
+
+    /// <summary>
+    /// Fills `item` for tile `index`. Called on the UI thread, only for the tiles in view.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RTileItemCallback(uint tile_view, int index, ref RTileItem item, IntPtr user_data);
+
+    /// <summary>
+    /// Selection change (`index`: the current tile, or -1) and activation (double click, Enter).
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RTileEventCallback(uint tile_view, int index, IntPtr user_data);
+
+    /// <summary>
+    /// Right click: the tile under the pointer (selected first), or -1 in the empty space; x, y in the window.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void RTileContextCallback(uint tile_view, int index, float x, float y, IntPtr user_data);
+
+    /// <summary>
+    /// The data of a drag, given by the application (paths of files...)
+    /// instead of the indices: the dragged tiles are the selected ones
+    /// (Rtile_view_get_selection). The text returned is copied; NULL keeps
+    /// the indices.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate IntPtr RTileDragDataCallback(uint tile_view, IntPtr user_data);
 
     /// <summary>
     /// Called each time the editor gathers its proposals, with the
@@ -2034,9 +2127,26 @@ namespace Raven
         public static extern double Rget_time();
 
         /// <summary>
-        /// R_FALSE makes every change immediate: for users who ask for
-        /// reduced motion, and for tests that read the state right after an input.
+        /// Scale of the whole interface, on top of the one of the monitor
+        /// (RInitDesc.ui_scale at start): every window is laid out again. 0.25 .. 4.
         /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rset_ui_scale(float scale);
+
+        /// <summary>
+        /// R_TRUE: every frame waits for the vertical synchronization of the
+        /// screen (no tearing, no wasted frames); R_FALSE: as fast as possible
+        /// (RInitDesc.disable_vsync at start). Takes effect at the next frame.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rset_vsync(int enabled);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rget_vsync();
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern float Rget_ui_scale();
+
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rset_animations_enabled(int enabled);
 
@@ -2278,9 +2388,13 @@ namespace Raven
         public static extern void Rwindow_begin_resize(uint window, RWindowEdge edge);
 
         /// <summary>
-        /// Color behind the content. By default it is the theme color
-        /// R_COLOR_WINDOW (and, with a glass theme, the wallpaper of the theme).
+        /// Icon of the window (title bar, task bar), from tightly packed
+        /// RGBA8 pixels; NULL goes back to the default: on Windows the first icon
+        /// of the executable, when it has one. Windows and X11.
         /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwindow_set_icon(uint window, byte[] rgba, int width, int height);
+
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rwindow_set_clear_color(uint window, float r, float g, float b, float a);
 
@@ -2316,6 +2430,19 @@ namespace Raven
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern float Rwindow_get_opacity(uint window);
+
+        /// <summary>
+        /// Keeps the window above the other windows (splash screens, tools).
+        /// Returns: R_FALSE when the window system cannot do it.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwindow_set_topmost(uint window, int topmost);
+
+        /// <summary>
+        /// Centers the window on the work area of its monitor (no task bar).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwindow_center(uint window);
 
         /// <summary>
         /// Asks for a new frame even if no widget changed. Thread-safe.
@@ -2421,10 +2548,89 @@ namespace Raven
         public static extern int Rwindow_inject_drop(uint window, float x, float y, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPUTF8Str)] string[] paths, int path_count, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
 
         /// <summary>
-        /// Registers a keyboard shortcut active while the window has focus and
-        /// no widget handled the key.
-        /// action Name of the action to fire (see Raction_bind).
+        /// R_TRUE while the key is held down in the window (cleared when the window loses the keyboard).
         /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwindow_is_key_down(uint window, RKey key);
+
+        /// <summary>
+        /// R_TRUE while the mouse button is held down over (or captured by) the window.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwindow_is_mouse_button_down(uint window, RMouseButton button);
+
+        /// <summary>
+        /// Modifiers (RModifier) of the last input event.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rwindow_get_modifiers(uint window);
+
+        /// <summary>
+        /// R_TRUE while the pointer is over the client area.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwindow_is_mouse_inside(uint window);
+
+        /// <summary>
+        /// R_TRUE when the keyboard focus is in a text input, spin box or text editor.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwindow_wants_text_input(uint window);
+
+        /// <summary>
+        /// R_TRUE while a menu, list or dialog is open over the window.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rwindow_has_popup(uint window);
+
+        /// <summary>
+        /// R_FALSE: Tab no longer moves the keyboard focus (the application uses it as a shortcut). Default R_TRUE.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwindow_set_tab_navigation(uint window, int enabled);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rwindow_set_event_hook(uint window, RWindowEventHook hook, IntPtr user_data);
+
+        /// <summary>
+        /// Starts dragging `data` from `source` (call it while a mouse button
+        /// is held, typically from a mouse-move event once the pointer has moved
+        /// a few units). Until the button is released, the widgets with a drop
+        /// callback (Rwidget_set_drop_callback) under the pointer receive
+        /// R_DROP_ENTER / MOVE / LEAVE and, on release, R_DROP_DROPPED, with
+        /// `drag_type` set and `text` = `data`. Returning R_FALSE from the callback
+        /// refuses the drop there. Escape cancels. `label` follows the pointer.
+        /// Returns: R_FALSE when the widget is not in a window.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rdrag_begin(uint source, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, [MarshalAs(UnmanagedType.LPUTF8Str)] string data, [MarshalAs(UnmanagedType.LPUTF8Str)] string label);
+
+        /// <summary>
+        /// R_TRUE while a drag started by Rdrag_begin is in progress in the window.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rdrag_is_active(uint window);
+
+        /// <summary>
+        /// Type of the drag in progress, or NULL.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rdrag_get_type", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rdrag_get_type_(uint window);
+        public static string Rdrag_get_type(uint window) { return Text(Rdrag_get_type_(window)); }
+
+        /// <summary>
+        /// Data of the drag in progress, or NULL.
+        /// </summary>
+        [DllImport(Lib, EntryPoint = "Rdrag_get_data", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr Rdrag_get_data_(uint window);
+        public static string Rdrag_get_data(uint window) { return Text(Rdrag_get_data_(window)); }
+
+        /// <summary>
+        /// Ends the drag in progress without dropping (the target receives R_DROP_LEAVE).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rdrag_cancel(uint window);
+
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rwindow_register_shortcut(uint window, RKey key, uint modifiers, [MarshalAs(UnmanagedType.LPUTF8Str)] string action);
 
@@ -3509,6 +3715,12 @@ namespace Raven
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rimage_set_tint_color(uint image, float r, float g, float b, float a);
 
+        /// <summary>
+        /// R_TRUE: the image is tinted with the text color around it (white icons that follow the theme). XML: TintText.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rimage_set_tint_text(uint image, int enabled);
+
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rimage_set_stretch(uint image, RStretch stretch);
 
@@ -3741,6 +3953,70 @@ namespace Raven
         public static extern void Rtree_view_set_activated_callback(uint tree_view, RTreeEventCallback callback, IntPtr user_data);
 
         /// <summary>
+        /// Icon drawn before the text of the item (a region u0,v0,u1,v1 of the texture). R_INVALID_ID removes it.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_item_set_icon(uint item, uint texture, float u0, float v0, float u1, float v1);
+
+        /// <summary>
+        /// Color of the text of the item; alpha 0 goes back to the theme.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_item_set_text_color(uint item, float r, float g, float b, float a);
+
+        /// <summary>
+        /// Several items can be selected: Ctrl + click adds or removes one,
+        /// Shift + click selects a range. The selection callback receives the item
+        /// clicked last (the primary one, Rtree_view_get_selected_item).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_view_set_multi_select(uint tree_view, int enabled);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_item_set_selected(uint item, int selected);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtree_item_is_selected(uint item);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_view_clear_selection(uint tree_view);
+
+        /// <summary>
+        /// Selected items, top to bottom.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtree_view_get_selection_count(uint tree_view);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rtree_view_get_selection(uint tree_view, int index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_view_scroll_to_item(uint tree_view, uint item);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_view_set_context_callback(uint tree_view, RTreeContextCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Items can be dragged: the selection is given to Rdrag_begin with
+        /// this type and, as data, the handles of the items in decimal separated
+        /// by spaces. NULL: no drag (default).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_view_set_drag_type(uint tree_view, [MarshalAs(UnmanagedType.LPUTF8Str)] string type);
+
+        /// <summary>
+        /// Item at a point relative to the tree (drop callbacks give local_x, local_y), or R_INVALID_ID.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint Rtree_view_get_item_at(uint tree_view, float local_x, float local_y);
+
+        /// <summary>
+        /// Highlights where a drop would go: an item, or the whole tree (`whole_tree`). R_INVALID_ID, 0 removes it.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtree_view_set_drop_highlight(uint tree_view, uint item, int whole_tree);
+
+        /// <summary>
         /// Creates a menu inside a menu bar or as a sub-menu of another menu.
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
@@ -3788,6 +4064,91 @@ namespace Raven
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rwindow_close_popups(uint window);
+
+        /// <summary>
+        /// Gives the tiles: `count` of them, described by `callback`. The selection is cleared.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_items(uint tile_view, int count, RTileItemCallback callback, IntPtr user_data);
+
+        /// <summary>
+        /// Draws the tiles again (their description changed, not their number).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_refresh(uint tile_view);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtile_view_get_count(uint tile_view);
+
+        /// <summary>
+        /// Size of a tile (its name included) and of its icon. Default 112 x 112, icon 64.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_tile_size(uint tile_view, float width, float height, float icon_size);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_empty_text(uint tile_view, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_selected(uint tile_view, int index, int selected);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtile_view_is_selected(uint tile_view, int index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_clear_selection(uint tile_view);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_select_only(uint tile_view, int index);
+
+        /// <summary>
+        /// The tile clicked last, or -1.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtile_view_get_current(uint tile_view);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtile_view_get_selection_count(uint tile_view);
+
+        /// <summary>
+        /// Index of the nth selected tile, in order.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtile_view_get_selection(uint tile_view, int nth);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_scroll_to(uint tile_view, int index);
+
+        /// <summary>
+        /// Tile at a point relative to the widget (drop callbacks give local_x, local_y), or -1.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rtile_view_get_item_at(uint tile_view, float local_x, float local_y);
+
+        /// <summary>
+        /// Highlights the tile a drop would go to; -1 removes it.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_drop_highlight(uint tile_view, int index);
+
+        /// <summary>
+        /// Tiles can be dragged: the selected tiles are given to Rdrag_begin
+        /// with this type and, as data, their indices separated by spaces.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_drag_type(uint tile_view, [MarshalAs(UnmanagedType.LPUTF8Str)] string type);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_drag_data_callback(uint tile_view, RTileDragDataCallback callback, IntPtr user_data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_selection_changed_callback(uint tile_view, RTileEventCallback callback, IntPtr user_data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_activated_callback(uint tile_view, RTileEventCallback callback, IntPtr user_data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rtile_view_set_context_callback(uint tile_view, RTileContextCallback callback, IntPtr user_data);
 
         /// <summary>
         /// text Initial content, or NULL.
@@ -4150,6 +4511,34 @@ namespace Raven
         /// </summary>
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Rdock_area_set_panel_closable(uint area, uint panel, int closable);
+
+        /// <summary>
+        /// Takes a panel out of the arrangement without deleting it (a
+        /// window of an application closed from its menu). Its tab disappears
+        /// and its neighbours take its place; the area remembers where it was.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rdock_area_hide_panel(uint area, uint panel);
+
+        /// <summary>
+        /// Puts a hidden panel back where it was, and brings its tab to the front (also for a panel that is not hidden).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rdock_area_open_panel(uint area, uint panel);
+
+        /// <summary>
+        /// Returns: R_TRUE when the panel is in the arrangement (not hidden), shown or behind another tab.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rdock_area_is_panel_open(uint area, uint panel);
+
+        /// <summary>
+        /// R_TRUE: the close button of a tab hides its panel
+        /// (Rdock_area_hide_panel) instead of deleting it. XML: CloseHides="true".
+        /// The close callback is asked first either way.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rdock_area_set_close_hides(uint area, int hides);
 
         /// <summary>
         /// Brings the tab of a panel to the front.
@@ -4929,6 +5318,30 @@ namespace Raven
         [DllImport(Lib, EntryPoint = "Rfile_dialog_get_result", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr Rfile_dialog_get_result_(int index);
         public static string Rfile_dialog_get_result(int index) { return Text(Rfile_dialog_get_result_(index)); }
+
+        /// <summary>
+        /// Registers a file held in memory under a path: every file Raven
+        /// reads (XML documents and their Include, Source and Font attributes,
+        /// themes, textures, fonts, Rfile_read) is looked up here first, so that
+        /// resources embedded in the executable need no file beside it. A relative
+        /// path names the file as it is written in the XML once joined to the
+        /// folder of the document that names it (Rxml_set_base_path for a
+        /// document given as text), e.g. "ui/editor.xml". Paths compare with '/'
+        /// and '\\' alike. Memory files are not watched for live reload. Call it
+        /// after Rinit; Rshutdown forgets every file.
+        /// copy R_TRUE: Raven keeps a copy; R_FALSE: `data` must outlive Raven (static data).
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rfile_register_memory([MarshalAs(UnmanagedType.LPUTF8Str)] string path, byte[] data, UIntPtr size, int copy);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Rfile_unregister_memory([MarshalAs(UnmanagedType.LPUTF8Str)] string path);
+
+        /// <summary>
+        /// R_TRUE when `path` is a file registered with Rfile_register_memory.
+        /// </summary>
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int Rfile_is_memory([MarshalAs(UnmanagedType.LPUTF8Str)] string path);
 
         /// <summary>
         /// Whole files, with UTF-8 paths on every platform.
